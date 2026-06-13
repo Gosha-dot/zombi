@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07110d">
+  <title>Zombie Apocalypse</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <canvas id="gameCanvas" aria-label="Zombie Apocalypse game canvas"></canvas>
+
+    <header id="hud" class="hud hud--hidden" aria-live="polite">
+      <div class="hud__row">
+        <div class="hud__card hud__card--health">
+          <span class="hud__label">Health</span>
+          <div class="hud__bar"><span id="healthFill" class="hud__fill"></span></div>
+          <strong id="healthText" class="hud__value">100 / 100</strong>
+        </div>
+        <div class="hud__card">
+          <span class="hud__label">Ammo</span>
+          <strong id="ammoText" class="hud__value">12 / 100</strong>
+        </div>
+        <div class="hud__card hud__card--keycard">
+          <span class="hud__label">Keycard</span>
+          <strong id="keycardText" class="hud__value">0</strong>
+        </div>
+        <div class="hud__card hud__card--grenade">
+          <span class="hud__label">Grenades</span>
+          <strong id="grenadeText" class="hud__value">2 / 3</strong>
+        </div>
+        <div class="hud__card">
+          <span class="hud__label">Weapon</span>
+          <strong id="weaponText" class="hud__value">Pistol</strong>
+        </div>
+        <div class="hud__card hud__card--modules">
+          <span class="hud__label">Modules</span>
+          <strong id="modulesText" class="hud__value">None</strong>
+        </div>
+        <div class="hud__card">
+          <span class="hud__label">Coins</span>
+          <strong id="coinsText" class="hud__value">0</strong>
+        </div>
+        <div class="hud__card">
+          <span class="hud__label">Wave</span>
+          <strong id="waveText" class="hud__value">1</strong>
+        </div>
+        <div class="hud__card">
+          <span class="hud__label">Score</span>
+          <strong id="scoreText" class="hud__value">0</strong>
+        </div>
+      </div>
+      <div id="bonusStrip" class="hud__bonuses"></div>
+      <section id="missionPanel" class="hud__missions" aria-label="Active missions">
+        <div class="hud__missions-header">
+          <span class="hud__label">Missions</span>
+          <strong id="missionRewardText" class="hud__missions-reward">0 cleared</strong>
+        </div>
+        <div id="missionList" class="mission-list"></div>
+      </section>
+      <div class="hud__minimap" aria-label="Mini map">
+        <div class="hud__minimap-header">
+          <span class="hud__label">Map</span>
+          <span id="minimapInfo" class="hud__minimap-info">0 zombies</span>
+        </div>
+        <canvas id="miniMapCanvas" width="180" height="180"></canvas>
+      </div>
+    </header>
+
+    <div id="notificationLayer" class="notifications" aria-live="assertive"></div>
+
+    <main class="overlay-stack">
+      <section id="mainMenu" class="panel panel--menu">
+        <div class="panel__inner panel__inner--hero">
+          <p class="eyebrow">Survive the outbreak</p>
+          <h1 class="title">Zombie Apocalypse</h1>
+          <p class="lede">Fight endless waves, upgrade between assaults, and climb the leaderboard before the city falls.</p>
+          <div class="panel__actions">
+            <button id="startGameBtn" class="btn btn--primary">Start Game</button>
+            <button id="openLeaderboardBtn" class="btn">Leaderboard</button>
+            <button id="openSettingsBtn" class="btn">Settings</button>
+          </div>
+          <div class="menu-stats">
+            <div class="menu-stats__item">
+              <span class="hud__label">Best Score</span>
+              <strong id="bestScoreText" class="hud__value">0</strong>
+            </div>
+            <div class="menu-stats__item">
+              <span class="hud__label">WASD + Mouse</span>
+              <strong class="hud__value">Survive the night</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="leaderboardPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Hall of survivors</p>
+            <h2 class="panel__title">Leaderboard</h2>
+          </div>
+          <button id="closeLeaderboardBtn" class="btn btn--ghost">Close</button>
+        </div>
+        <div class="panel__body">
+          <table class="leaderboard">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Score</th>
+                <th>Waves</th>
+                <th>Kills</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="settingsPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">System config</p>
+            <h2 class="panel__title">Settings</h2>
+          </div>
+          <button id="closeSettingsBtn" class="btn btn--ghost">Close</button>
+        </div>
+        <div class="panel__body settings-grid">
+          <label class="field">
+            <span>Player Name</span>
+            <input id="playerNameInput" type="text" maxlength="16" placeholder="Survivor">
+          </label>
+          <label class="field">
+            <span>Sound Volume</span>
+            <input id="soundVolumeInput" type="range" min="0" max="100" value="70">
+          </label>
+          <label class="field">
+            <span>Music Volume</span>
+            <input id="musicVolumeInput" type="range" min="0" max="100" value="35">
+          </label>
+          <label class="toggle">
+            <input id="screenShakeInput" type="checkbox" checked>
+            <span>Screen Shake</span>
+          </label>
+          <label class="toggle">
+            <input id="bloodEffectsInput" type="checkbox" checked>
+            <span>Blood Effects</span>
+          </label>
+        </div>
+      </section>
+
+      <section id="shopPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Supply cache</p>
+            <h2 class="panel__title">Upgrade Shop</h2>
+          </div>
+          <div class="shop-meta">
+            <span id="waveCountdownText" class="shop-meta__count">00:00</span>
+            <button id="startNextWaveBtn" class="btn btn--primary">Start Next Wave</button>
+          </div>
+        </div>
+        <div class="shop-scroll">
+          <div id="shopGrid" class="shop-grid"></div>
+        </div>
+      </section>
+
+      <section id="mapPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Tactical view</p>
+            <h2 class="panel__title">World Map</h2>
+          </div>
+          <button id="closeMapBtn" class="btn btn--ghost">Close</button>
+        </div>
+        <div class="panel__body map-body">
+          <div class="map-frame">
+            <canvas id="worldMapCanvas" width="720" height="720"></canvas>
+          </div>
+          <div class="map-hints">
+            <span>Press G to toggle map</span>
+            <span id="mapInfoText">0 zombies detected</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="gameOverPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">The horde won</p>
+            <h2 class="panel__title">Game Over</h2>
+          </div>
+        </div>
+        <div class="panel__body gameover-grid">
+          <div class="summary-card">
+            <div class="summary-card__row"><span>Final Score</span><strong id="finalScoreText">0</strong></div>
+            <div class="summary-card__row"><span>Waves Survived</span><strong id="finalWavesText">0</strong></div>
+            <div class="summary-card__row"><span>Zombies Killed</span><strong id="finalKillsText">0</strong></div>
+            <div class="summary-card__row"><span>Accuracy</span><strong id="finalAccuracyText">0%</strong></div>
+            <div class="summary-card__row"><span>Headshots</span><strong id="finalHeadshotsText">0</strong></div>
+          </div>
+          <div class="summary-card">
+            <label class="field">
+              <span>Save Score As</span>
+              <input id="scoreNameInput" type="text" maxlength="16" placeholder="Survivor">
+            </label>
+            <div class="panel__actions panel__actions--stack">
+              <button id="saveScoreBtn" class="btn btn--primary">Save Score</button>
+              <button id="playAgainBtn" class="btn">Play Again</button>
+              <button id="mainMenuBtn" class="btn btn--ghost">Main Menu</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="touchControls" class="touch-controls" aria-hidden="true">
+      <div id="movePad" class="touch-controls__pad">
+        <div id="moveThumb" class="touch-controls__thumb"></div>
+      </div>
+      <div class="touch-controls__actions">
+        <button id="dashBtn" class="touch-btn touch-btn--accent">Dash</button>
+        <button id="fireBtn" class="touch-btn touch-btn--primary">Fire</button>
+        <button id="grenadeBtn" class="touch-btn touch-btn--warning">Grenade</button>
+        <button id="reloadBtn" class="touch-btn">Reload</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/weapons.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/zombie.js"></script>
+  <script src="js/waves.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/bonuses.js"></script>
+  <script src="js/leaderboard.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
