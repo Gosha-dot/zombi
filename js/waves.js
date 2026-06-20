@@ -83,6 +83,7 @@
     completeWave() {
       this.state = "completed";
       this.wavesCleared += 1;
+      this.game.addSkillPoints(this.bossWave ? 2 : 1, { notify: false, floaters: false });
       this.beginIntermission();
     }
 

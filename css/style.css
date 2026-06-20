@@ -815,6 +815,17 @@ body::after {
   color: var(--warning);
 }
 
+.shop-card--skill {
+  border-color: rgba(255, 227, 138, 0.26);
+  background:
+    linear-gradient(180deg, rgba(23, 20, 10, 0.94), rgba(8, 8, 5, 0.95)),
+    linear-gradient(135deg, rgba(255, 227, 138, 0.08), rgba(103, 240, 167, 0.03));
+}
+
+.shop-card--skill .shop-card__cost {
+  color: #ffe38a;
+}
+
 .shop-card__head {
   display: flex;
   justify-content: space-between;

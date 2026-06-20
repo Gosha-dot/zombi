@@ -90,6 +90,21 @@
       kind: "module",
       moduleKey: "pierce"
     },
+    moduleLegendary: {
+      key: "moduleLegendary",
+      label: "Legendary Module",
+      icon: "LG",
+      color: "#ffe38a",
+      kind: "module",
+      moduleKey: "legendary"
+    },
+    rareTech: {
+      key: "rareTech",
+      label: "Rail Core",
+      icon: "RC",
+      color: "#b6f8ff",
+      kind: "crafting"
+    },
     doubleDamage: {
       key: "doubleDamage",
       label: "Double Damage",
@@ -147,7 +162,7 @@
       this.x = x;
       this.y = y;
       this.radius = 14;
-      this.life = 18;
+      this.life = this.type === "keycard" ? 15 * 60 : 18;
       this.pulse = Math.random() * Math.PI * 2;
       this.vx = (Math.random() - 0.5) * 18;
       this.vy = -18 - Math.random() * 18;
@@ -324,7 +339,11 @@
         case "moduleReload":
         case "moduleOptic":
         case "modulePierce":
+        case "moduleLegendary":
           this.game.collectWeaponModule(def.moduleKey);
+          break;
+        case "rareTech":
+          this.game.addRareLoot(1);
           break;
         case "doubleDamage":
         case "rapidFire":
@@ -374,7 +393,9 @@
         ["moduleMagazine", isBoss ? 12 : 5],
         ["moduleReload", isBoss ? 11 : 5],
         ["moduleOptic", isBoss ? 10 : 4],
-        ["modulePierce", isBoss ? 9 : 3]
+        ["modulePierce", isBoss ? 9 : 3],
+        ["moduleLegendary", isBoss ? 3 : 1],
+        ["rareTech", isBoss ? 8 : 2]
       ];
       const weights = (locationProfile.weights || defaultWeights).map(([type, weight]) => {
         const bonus = locationProfile.bonusBoosts?.[type] || 0;

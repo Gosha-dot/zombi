@@ -33,6 +33,50 @@
     };
   }
 
+  function createRailgunCraftItem() {
+    const weapon = WEAPON_DEFS.railgun;
+    return {
+      id: "craft.railgun",
+      category: "Trader Crafting",
+      kind: "craftWeapon",
+      weaponKey: "railgun",
+      traderOnly: true,
+      rareLootCost: 3,
+      name: "Craft Railgun",
+      description: "Assemble the Railgun from rare Rail Cores. Only the trader has the tools for this weapon.",
+      baseCost: 0,
+      growth: 1,
+      maxLevel: 1,
+      preview: () => `DMG ${Math.round(weapon.damage)} · RATE ${weapon.fireRate.toFixed(1)}/s · MAG ${weapon.magazineSize}`,
+      apply: (player) => player.unlockWeapon("railgun")
+    };
+  }
+
+  function createSkillItem(skillKey, config) {
+    return {
+      id: `skill.${skillKey}`,
+      category: "Skill Tree",
+      kind: "skill",
+      skillKey,
+      name: config.name,
+      description: config.description,
+      skillCost: config.skillCost || 1,
+      maxLevel: config.maxLevel || 1,
+      requires: config.requires || null,
+      preview: config.preview,
+      apply: (player) => player.applySkill(skillKey)
+    };
+  }
+
+  const SKILL_NAMES = {
+    vitality: "Vitality",
+    agility: "Agility",
+    weaponsmith: "Weaponsmith",
+    armorSmith: "Armor Smith",
+    scavenger: "Scavenger",
+    overcharge: "Overcharge"
+  };
+
   const SHOP_UPGRADES = [
     {
       id: "health.maxHp",
@@ -125,11 +169,7 @@
       description: "Fast spray weapon for shredding runners and smaller packs.",
       baseCost: 300
     }),
-    createWeaponUnlockItem("railgun", {
-      name: "Railgun",
-      description: "A piercing high-energy weapon that punches through multiple zombies.",
-      baseCost: 460
-    }),
+    createRailgunCraftItem(),
     createWeaponModuleItem("damage", {
       baseCost: 140
     }),
@@ -217,7 +257,54 @@
       maxLevel: 8,
       preview: (level) => `-${Math.min(50, (level + 1) * 4)}% damage taken`,
       apply: (player) => player.applyUpgrade("defense.reduction")
-    }
+    },
+    createSkillItem("vitality", {
+      name: "Vitality",
+      description: "Root survival skill: adds max HP and unlocks defensive branches.",
+      maxLevel: 3,
+      skillCost: 1,
+      preview: (level) => `+${(level + 1) * 15} max HP`
+    }),
+    createSkillItem("agility", {
+      name: "Agility",
+      description: "Move faster and reposition before the horde closes in.",
+      maxLevel: 3,
+      skillCost: 1,
+      requires: { skillKey: "vitality", level: 1 },
+      preview: (level) => `+${(level + 1) * 14} move speed`
+    }),
+    createSkillItem("weaponsmith", {
+      name: "Weaponsmith",
+      description: "Tune every weapon for stronger base damage.",
+      maxLevel: 3,
+      skillCost: 1,
+      requires: { skillKey: "vitality", level: 1 },
+      preview: (level) => `+${(level + 1) * 8}% weapon damage`
+    }),
+    createSkillItem("armorSmith", {
+      name: "Armor Smith",
+      description: "Reinforce armor with flat block and extra damage reduction.",
+      maxLevel: 2,
+      skillCost: 2,
+      requires: { skillKey: "vitality", level: 2 },
+      preview: (level) => `Armor branch Lv ${level + 1}`
+    }),
+    createSkillItem("scavenger", {
+      name: "Scavenger",
+      description: "Improve rare loot and legendary module chances from chests and safes.",
+      maxLevel: 2,
+      skillCost: 2,
+      requires: { skillKey: "agility", level: 2 },
+      preview: (level) => `Loot chance Lv ${level + 1}`
+    }),
+    createSkillItem("overcharge", {
+      name: "Overcharge",
+      description: "Boost critical chance after mastering weaponsmithing.",
+      maxLevel: 2,
+      skillCost: 2,
+      requires: { skillKey: "weaponsmith", level: 2 },
+      preview: (level) => `+${Math.round((level + 1) * 2.5)}% crit chance`
+    })
   ];
 
   class ShopManager {
@@ -238,8 +325,14 @@
       if (item?.kind === "weaponUnlock") {
         return player.hasWeapon(item.weaponKey) ? 1 : 0;
       }
+      if (item?.kind === "craftWeapon") {
+        return player.hasWeapon(item.weaponKey) ? 1 : 0;
+      }
       if (item?.kind === "module") {
         return player.getWeaponModuleLevel(player.weaponKey, item.moduleKey);
+      }
+      if (item?.kind === "skill") {
+        return player.getSkillLevel(item.skillKey);
       }
       if (item?.kind === "resource") {
         if (item.resourceKey === "ammo") {
@@ -276,6 +369,9 @@
     }
 
     getCost(item) {
+      if (item.kind === "skill") {
+        return item.skillCost || 1;
+      }
       const level = this.getLevel(item.id);
       return Math.round(item.baseCost * Math.pow(item.growth, level));
     }
@@ -289,23 +385,59 @@
       ].includes(item.id));
     }
 
-    canBuy(item) {
+    getRequirementText(item) {
+      if (!item.requires) {
+        return "";
+      }
+      const name = SKILL_NAMES[item.requires.skillKey] || item.requires.skillKey;
+      return `Requires ${name} Lv ${item.requires.level}`;
+    }
+
+    meetsSkillRequirement(item) {
+      if (!item.requires) {
+        return true;
+      }
+      return this.game.player.getSkillLevel(item.requires.skillKey) >= item.requires.level;
+    }
+
+    getLockReason(item) {
       if (this.isLockedByMode(item)) {
+        return "Locked in One HP";
+      }
+      if (item.traderOnly && !this.game.isTraderWave?.()) {
+        return "Trader only";
+      }
+      if (item.kind === "skill" && !this.meetsSkillRequirement(item)) {
+        return this.getRequirementText(item);
+      }
+      return "";
+    }
+
+    isMaxed(item, level = this.getLevel(item.id)) {
+      if (item.kind === "resource") {
+        return item.resourceKey === "ammo"
+          ? this.game.player.ammoReserve >= 100
+          : this.game.player.grenadeCount >= this.game.player.maxGrenades;
+      }
+      return level >= item.maxLevel;
+    }
+
+    canBuy(item) {
+      if (this.getLockReason(item)) {
         return false;
       }
       const level = this.getLevel(item.id);
-      if (level >= item.maxLevel) {
+      if (this.isMaxed(item, level)) {
         return false;
       }
-      if (item.kind === "resource") {
-        if (item.resourceKey === "ammo" && this.game.player.ammoReserve >= 100) {
-          return false;
-        }
-        if (item.resourceKey === "grenade" && this.game.player.grenadeCount >= this.game.player.maxGrenades) {
-          return false;
-        }
+      const cost = this.getCost(item);
+      if (item.kind === "skill") {
+        return this.game.skillPoints >= cost;
       }
-      return this.game.coins >= this.getCost(item);
+      if (item.kind === "craftWeapon") {
+        return this.game.rareLoot >= (item.rareLootCost || 0) && this.game.coins >= cost;
+      }
+      return this.game.coins >= cost;
     }
 
     buy(id) {
@@ -323,7 +455,47 @@
         return { ok: false, reason: "Locked in One HP" };
       }
 
+      const lockReason = this.getLockReason(item);
+      if (lockReason) {
+        return { ok: false, reason: lockReason };
+      }
+
       const cost = this.getCost(item);
+      if (item.kind === "skill") {
+        if (this.game.skillPoints < cost) {
+          return { ok: false, reason: "Not enough SP" };
+        }
+        const applied = item.apply(this.game.player);
+        if (!applied) {
+          return { ok: false, reason: "Skill unavailable" };
+        }
+        this.game.skillPoints -= cost;
+        this.game.audio.playSfx("ui");
+        this.game.ui.showNotification(`${item.name} learned`, "accent", 2200);
+        return { ok: true, cost, level: this.getLevel(id) };
+      }
+
+      if (item.kind === "craftWeapon") {
+        if (this.game.player.hasWeapon(item.weaponKey)) {
+          return { ok: false, reason: "Already owned" };
+        }
+        if (this.game.rareLoot < (item.rareLootCost || 0)) {
+          return { ok: false, reason: "Need more Rail Cores" };
+        }
+        if (this.game.coins < cost) {
+          return { ok: false, reason: "Not enough coins" };
+        }
+        const applied = item.apply(this.game.player);
+        if (!applied) {
+          return { ok: false, reason: "Already owned" };
+        }
+        this.game.rareLoot -= item.rareLootCost || 0;
+        this.game.coins -= cost;
+        this.game.audio.playSfx("ui");
+        this.game.ui.showNotification(`${item.name} completed`, "accent", 2400);
+        return { ok: true, cost, level: this.getLevel(id) };
+      }
+
       if (this.game.coins < cost) {
         return { ok: false, reason: "Not enough coins" };
       }
@@ -392,32 +564,34 @@
               const level = this.getLevel(item.id);
               const cost = this.getCost(item);
               const isModule = item.kind === "module";
-              const lockedByMode = this.isLockedByMode(item);
+              const lockReason = this.getLockReason(item);
+              const maxed = lockReason ? false : this.isMaxed(item, level);
               return {
                 ...item,
                 level,
                 cost,
-                lockedByMode,
-                affordable: !lockedByMode && this.game.coins >= cost && !(item.kind === "resource" && (
-                  (item.resourceKey === "ammo" && this.game.player.ammoReserve >= 100) ||
-                  (item.resourceKey === "grenade" && this.game.player.grenadeCount >= this.game.player.maxGrenades)
-                )),
-                maxed: lockedByMode ? true : item.kind === "resource"
-                  ? (item.resourceKey === "ammo"
-                    ? this.game.player.ammoReserve >= 100
-                    : this.game.player.grenadeCount >= this.game.player.maxGrenades)
-                  : level >= item.maxLevel,
-                previewText: lockedByMode
-                  ? "Locked in One HP"
+                lockedByMode: Boolean(lockReason),
+                lockReason,
+                affordable: this.canBuy(item),
+                maxed,
+                previewText: lockReason
+                  ? lockReason
                   : item.kind === "resource"
                   ? item.resourceKey === "ammo"
                     ? `Reserve ${Math.ceil(this.game.player.ammoReserve)}/100`
                     : `Grenades ${Math.ceil(this.game.player.grenadeCount)}/${this.game.player.maxGrenades}`
+                  : item.kind === "craftWeapon"
+                    ? `${this.game.rareLoot}/${item.rareLootCost || 0} Rail Cores`
+                  : item.kind === "skill"
+                    ? `${item.preview(level)} · SP ${this.game.skillPoints}`
                   : isModule
                     ? `Lv ${level}/${item.maxLevel}`
                     : item.preview(level),
                 weaponUnlock: item.kind === "weaponUnlock",
-                isModule
+                isModule,
+                isCraft: item.kind === "craftWeapon",
+                isSkill: item.kind === "skill",
+                requirementText: this.getRequirementText(item)
               };
             })
         });

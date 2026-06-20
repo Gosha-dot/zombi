@@ -155,7 +155,7 @@
       isBoss: true,
       radius: 36,
       speed: 58,
-      hp: 680,
+      hp: 850,
       damage: 28,
       score: 800,
       coins: 220,
@@ -169,7 +169,7 @@
       isBoss: true,
       radius: 34,
       speed: 52,
-      hp: 620,
+      hp: 775,
       damage: 24,
       score: 850,
       coins: 235,
@@ -190,7 +190,7 @@
       isBoss: true,
       radius: 42,
       speed: 42,
-      hp: 880,
+      hp: 1100,
       damage: 34,
       score: 950,
       coins: 260,
@@ -204,7 +204,7 @@
       isBoss: true,
       radius: 32,
       speed: 68,
-      hp: 560,
+      hp: 700,
       damage: 22,
       score: 880,
       coins: 240,
@@ -216,6 +216,25 @@
       projectileDamage: 11,
       fireCooldown: 1.45,
       preferredRange: 300
+    },
+    butcherBoss: {
+      key: "butcherBoss",
+      name: "Butcher",
+      isBoss: true,
+      radius: 39,
+      speed: 54,
+      hp: 980,
+      damage: 31,
+      score: 980,
+      coins: 280,
+      color: "#b8483e",
+      eye: "#ffe9d6",
+      headScale: 0.4,
+      projectileColor: "#ffe19a",
+      projectileSpeed: 520,
+      projectileDamage: 16,
+      fireCooldown: 2.4,
+      preferredRange: 360
     }
   };
 
@@ -242,6 +261,7 @@
       this.bossAttackIndex = this.isBoss() ? Math.floor(Math.random() * 3) : 0;
       this.bossRushTime = 0;
       this.bossRushVector = { x: 0, y: 0 };
+      this.phaseTwo = false;
       this.alive = true;
       this.deathFlash = 0;
       this.hitFlash = 0;
@@ -288,9 +308,9 @@
         this.speed = this.base.speed * speedScale;
         this.damage = Math.round(this.base.damage * damageScale * 1.08);
       } else if (this.isBoss()) {
-        const bossHpScale = this.type === "juggernautBoss" ? 1.45 : this.type === "screamerBoss" ? 1.18 : 1.35;
-        const bossSpeedScale = this.type === "juggernautBoss" ? 0.84 : this.type === "screamerBoss" ? 1.04 : 0.92;
-        const bossDamageScale = this.type === "juggernautBoss" ? 1.28 : this.type === "screamerBoss" ? 1.08 : 1.18;
+        const bossHpScale = this.type === "juggernautBoss" ? 1.45 : this.type === "screamerBoss" ? 1.18 : this.type === "butcherBoss" ? 1.38 : 1.35;
+        const bossSpeedScale = this.type === "juggernautBoss" ? 0.84 : this.type === "screamerBoss" ? 1.04 : this.type === "butcherBoss" ? 0.96 : 0.92;
+        const bossDamageScale = this.type === "juggernautBoss" ? 1.28 : this.type === "screamerBoss" ? 1.08 : this.type === "butcherBoss" ? 1.22 : 1.18;
         this.maxHp = Math.round(this.base.hp * waveScale * bossHpScale);
         this.hp = this.maxHp;
         this.speed = this.base.speed * speedScale * bossSpeedScale;
@@ -341,6 +361,20 @@
       return Boolean(this.base.isBoss);
     }
 
+    enterPhaseTwo() {
+      if (!this.isBoss() || this.phaseTwo) {
+        return;
+      }
+
+      this.phaseTwo = true;
+      this.attackFlash = 0.55;
+      this.bossAttackTimer = Math.min(this.bossAttackTimer, 0.65);
+      this.game.addShake(6);
+      this.game.particles.explosion(this.x, this.y, 20, this.base.color);
+      this.game.ui.showNotification(`${this.base.name || "Boss"} enraged`, "danger", 2200);
+      this.game.audio.playSfx("explode");
+    }
+
     takeDamage(amount, meta = {}) {
       if (!this.alive) {
         return;
@@ -368,6 +402,8 @@
 
       if (this.hp <= 0) {
         this.die(meta);
+      } else if (this.isBoss() && !this.phaseTwo && this.hp <= this.maxHp * 0.5) {
+        this.enterPhaseTwo();
       } else if (this.type === "exploder" && this.hp < this.maxHp * 0.18) {
         this.triggerExplosion(true);
       }
@@ -417,6 +453,41 @@
       this.game.addShake(1.2);
     }
 
+    throwHookAtPlayer() {
+      const player = this.game.player;
+      const muzzle = this.getHeadPosition();
+      const dx = player.x - muzzle.x;
+      const dy = player.y - muzzle.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const speed = (this.base.projectileSpeed || 520) * (this.phaseTwo ? 1.12 : 1);
+      const fireAngle = Math.atan2(dy, dx);
+      const originX = muzzle.x + Math.cos(fireAngle) * this.radius * 0.8;
+      const originY = muzzle.y + Math.sin(fireAngle) * this.radius * 0.8;
+
+      this.game.spawnEnemyBullet({
+        x: originX,
+        y: originY,
+        vx: (dx / length) * speed,
+        vy: (dy / length) * speed,
+        radius: this.phaseTwo ? 7 : 6,
+        damage: (this.base.projectileDamage || 16) + (this.phaseTwo ? 4 : 0),
+        color: this.base.projectileColor || "#ffe19a",
+        glow: "rgba(255, 225, 154, 0.78)",
+        life: 2.5,
+        sourceType: "butcherHook",
+        source: this,
+        pullStrength: this.phaseTwo ? 150 : 112,
+        pullX: this.x,
+        pullY: this.y
+      });
+
+      this.rangedCooldown = this.phaseTwo ? 1.45 : this.base.fireCooldown || 2.4;
+      this.attackFlash = 0.35;
+      this.game.particles.sparks(originX, originY, 8, this.base.projectileColor || "#ffe19a");
+      this.game.audio.playSfx("zombieShoot");
+      this.game.addShake(2.2);
+    }
+
     triggerBossAttack() {
       if (!this.isBoss()) {
         return;
@@ -429,6 +500,31 @@
       const normalizedX = dx / distance;
       const normalizedY = dy / distance;
       const attack = this.bossAttackIndex % 3;
+
+      if (this.type === "butcherBoss") {
+        if (attack === 0 || (this.phaseTwo && distance > 150)) {
+          this.throwHookAtPlayer();
+        } else if (attack === 1) {
+          this.attackFlash = 0.46;
+          this.game.addShake(6);
+          this.game.particles.explosion(this.x, this.y, 18, this.base.color);
+          this.game.audio.playSfx("explode");
+          if (distance < (this.phaseTwo ? 310 : 250)) {
+            this.game.player.takeDamage(this.damage * (this.phaseTwo ? 1.34 : 1.12), this.x, this.y);
+          }
+        } else {
+          this.attackFlash = 0.32;
+          this.bossRushTime = this.phaseTwo ? 0.86 : 0.68;
+          this.bossRushVector = { x: normalizedX, y: normalizedY };
+          this.game.addShake(4.5);
+          this.game.particles.sparks(this.x, this.y, 16, "#ffe19a");
+          this.game.audio.playSfx("zombieBite");
+        }
+
+        this.bossAttackIndex = (this.bossAttackIndex + 1) % 3;
+        this.bossAttackTimer = this.phaseTwo ? 2.25 : 3.25;
+        return;
+      }
 
       if (attack === 0) {
         this.attackFlash = 0.4;
@@ -472,7 +568,7 @@
       }
 
       this.bossAttackIndex = (this.bossAttackIndex + 1) % 3;
-      this.bossAttackTimer = this.isBoss() ? 3.6 + Math.max(0, 5 - this.game.waveManager.wave) * 0.08 : 0;
+      this.bossAttackTimer = this.isBoss() ? (this.phaseTwo ? 2.65 : 3.6) + Math.max(0, 5 - this.game.waveManager.wave) * 0.08 : 0;
     }
 
     die(meta = {}) {
@@ -598,8 +694,8 @@
         }
       }
 
-      if (this.isBoss() && this.hp < this.maxHp * 0.45) {
-        speed *= this.type === "juggernautBoss" ? 1.08 : 1.16;
+      if (this.isBoss() && this.hp < this.maxHp * 0.5) {
+        speed *= this.type === "juggernautBoss" ? 1.1 : this.type === "butcherBoss" ? 1.28 : 1.18;
       }
 
       if (this.type === "brute" && this.hp < this.maxHp * 0.35) {
@@ -610,7 +706,7 @@
         this.bossRushTime -= dt;
         moveX = this.bossRushVector.x;
         moveY = this.bossRushVector.y;
-        speed *= this.type === "juggernautBoss" ? 3.4 : 3.1;
+        speed *= this.type === "juggernautBoss" ? 3.4 : this.type === "butcherBoss" ? 3.6 : 3.1;
         this.attackFlash = Math.max(this.attackFlash, 0.15);
       }
 
@@ -667,7 +763,7 @@
       if (this.isBoss()) {
         this.pulseTimer -= dt;
         if (this.pulseTimer <= 0) {
-          this.pulseTimer = this.type === "screamerBoss" ? 3.8 : 4.5;
+          this.pulseTimer = this.phaseTwo ? (this.type === "screamerBoss" ? 2.8 : 3.3) : this.type === "screamerBoss" ? 3.8 : 4.5;
           this.attackFlash = 0.28;
           this.game.addShake(4);
           this.game.particles.explosion(this.x, this.y, 12, this.base.color);
@@ -714,8 +810,8 @@
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         const aura = ctx.createRadialGradient(0, 0, bodyRadius * 0.5, 0, 0, bodyRadius * 2.6);
-        aura.addColorStop(0, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.26)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.25)" : "rgba(255, 126, 126, 0.28)");
-        aura.addColorStop(0.6, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.1)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.12)" : "rgba(255, 96, 96, 0.14)");
+        aura.addColorStop(0, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.26)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.25)" : this.type === "butcherBoss" ? "rgba(255, 225, 154, 0.25)" : "rgba(255, 126, 126, 0.28)");
+        aura.addColorStop(0.6, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.1)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.12)" : this.type === "butcherBoss" ? "rgba(184, 72, 62, 0.14)" : "rgba(255, 96, 96, 0.14)");
         aura.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = aura;
         ctx.beginPath();
@@ -838,6 +934,27 @@
           ctx.arc(0, 0, bodyRadius + 18 + i * 8 + Math.sin(this.game.worldTime * 5 + i) * 2, -0.6, 0.6);
           ctx.stroke();
         }
+        ctx.restore();
+      }
+
+      if (this.type === "butcherBoss") {
+        ctx.save();
+        ctx.fillStyle = "rgba(38, 18, 16, 0.58)";
+        ctx.beginPath();
+        ctx.ellipse(-bodyRadius * 0.08, bodyRadius * 0.1, bodyRadius * 0.76, bodyRadius * 0.56, 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = this.phaseTwo ? "rgba(255, 225, 154, 0.88)" : "rgba(255, 225, 154, 0.58)";
+        ctx.lineWidth = 3.2;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bodyRadius * 0.38, -bodyRadius * 0.18);
+        ctx.lineTo(bodyRadius * 1.12, -bodyRadius * 0.48);
+        ctx.quadraticCurveTo(bodyRadius * 1.5, -bodyRadius * 0.18, bodyRadius * 1.18, bodyRadius * 0.18);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255, 233, 214, 0.86)";
+        ctx.beginPath();
+        ctx.ellipse(bodyRadius * 0.18, -bodyRadius * 0.16, bodyRadius * 0.34, bodyRadius * 0.22, -0.12, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
 

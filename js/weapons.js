@@ -165,7 +165,7 @@
     railgun: {
       key: "railgun",
       name: "Railgun",
-      damage: 112,
+      damage: 92,
       fireRate: 0.58,
       reloadTime: 2.4,
       magazineSize: 4,
@@ -257,6 +257,25 @@
       effects: {
         pierceBonus: 1
       }
+    },
+    legendary: {
+      key: "legendary",
+      name: "Legendary Core",
+      short: "LGC",
+      icon: "LG",
+      color: "#ffe38a",
+      maxLevel: 1,
+      description: "A rare masterwork module that boosts damage, fire rate, reload, crits, and pierce.",
+      effects: {
+        damageMult: 0.18,
+        fireRateMult: 0.08,
+        reloadTimeMult: -0.1,
+        critChanceBonus: 0.04,
+        headshotMultBonus: 0.12,
+        pierceBonus: 1,
+        bulletSpeedMult: 0.08,
+        recoilMult: -0.08
+      }
     }
   };
 
@@ -299,7 +318,8 @@
     const rapidFire = Boolean(player?.game?.bonuses?.isActive("rapidFire"));
     const moduleEffects = getWeaponModuleEffects(player, key);
 
-    const damageMult = (1 + (upgrades.weaponDamage || 0) * 0.12) * (doubleDamage ? 2 : 1) * (1 + moduleEffects.damageMult);
+    const skills = player?.skills || {};
+    const damageMult = (1 + (upgrades.weaponDamage || 0) * 0.12 + (skills.weaponsmith || 0) * 0.08) * (doubleDamage ? 2 : 1) * (1 + moduleEffects.damageMult);
     const fireRateMult = (1 + (upgrades.fireRate || 0) * 0.08) * (rapidFire ? 1.45 : 1) * (1 + moduleEffects.fireRateMult);
     const reloadMult = Math.max(0.35, Math.max(0.45, 1 - (upgrades.reload || 0) * 0.08) * (1 + moduleEffects.reloadTimeMult));
     const spreadMult = Math.max(0.25, 1 + moduleEffects.spreadMult);
@@ -314,7 +334,7 @@
       bulletSpeed: base.bulletSpeed * (1 + moduleEffects.bulletSpeedMult),
       spread: Math.max(0.002, base.spread * spreadMult),
       pellets: base.pellets,
-      critChance: Math.min(0.5, base.critChance + moduleEffects.critChanceBonus),
+      critChance: Math.min(0.5, base.critChance + moduleEffects.critChanceBonus + (skills.overcharge || 0) * 0.025),
       critMultiplier: base.critMultiplier,
       headshotMultiplier: base.headshotMultiplier + moduleEffects.headshotMultBonus,
       pierce: base.pierce + moduleEffects.pierceBonus,

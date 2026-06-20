@@ -521,6 +521,8 @@
       this.worldTime = 0;
       this.state = "menu";
       this.coins = 0;
+      this.rareLoot = 0;
+      this.skillPoints = 0;
       this.stats = this.createStats();
       this.zombies = [];
       this.bullets = [];
@@ -1162,17 +1164,20 @@
       return location;
     }
 
-    createWorldLayout() {
+    createWorldLayout(options = {}) {
       const location = this.getCurrentLocation();
       if (!location) {
         return null;
       }
+      const previousLootContainers = options.preserveLootContainers
+        ? this.worldLayout?.lootContainers
+        : null;
       const layout = location.build(this, location.theme);
       const normalizedLayout = this.normalizeLeverToOppositeDoor(layout);
       return {
         ...normalizedLayout,
         ammoBox: this.createAmmoBox(),
-        lootContainers: this.createLootContainers(location.key),
+        lootContainers: this.createLootContainers(location.key, previousLootContainers),
         locationKey: location.key,
         locationName: location.name,
         weather: location.weather,
@@ -1242,10 +1247,11 @@
       };
     }
 
-    createLootContainers(locationKey = "city") {
+    createLootContainers(locationKey = "city", previous = []) {
       const wave = this.waveManager?.wave || 1;
       const size = Math.min(58, Math.max(42, Math.round(Math.min(this.width, this.height) * 0.065)));
       const safeSize = Math.round(size * 0.92);
+      const priorById = new Map((previous || []).map((container) => [container.id, container]));
       const positions = {
         city: [
           { kind: "chest", x: 0.24, y: 0.34 },
@@ -1275,16 +1281,17 @@
       };
 
       return (positions[locationKey] || positions.city).map((entry, index) => {
+        const id = `${locationKey}-${wave}-${entry.kind}-${index}`;
         const w = entry.kind === "safe" ? safeSize : size;
         const h = entry.kind === "safe" ? Math.round(safeSize * 1.1) : Math.round(size * 0.72);
         return {
-          id: `${locationKey}-${wave}-${entry.kind}-${index}`,
+          id,
           kind: entry.kind,
           x: Math.round(GameUtils.clamp(this.width * entry.x - w * 0.5, 28, this.width - w - 28)),
           y: Math.round(GameUtils.clamp(this.height * entry.y - h * 0.5, 96, this.height - h - 80)),
           w,
           h,
-          opened: false
+          opened: Boolean(priorById.get(id)?.opened)
         };
       });
     }
@@ -1590,6 +1597,9 @@
       const bonusType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
       const centerX = container.x + container.w * 0.5;
       const centerY = container.y + container.h * 0.5;
+      const scavengerBonus = (this.player.skills?.scavenger || 0) * 0.04;
+      const rareLootChance = (isSafe ? 0.36 : 0.16) + scavengerBonus;
+      const legendaryModuleChance = (isSafe ? 0.16 : 0.07) + scavengerBonus * 0.5;
 
       this.addCoins(coinReward);
       this.player.addAmmo(ammoReward);
@@ -1597,6 +1607,12 @@
         this.addGrenades(grenadeReward, { notify: false });
       }
       this.pickups.push(new BonusPickup(this, bonusType, centerX, centerY - 18));
+      if (Math.random() < rareLootChance) {
+        this.pickups.push(new BonusPickup(this, "rareTech", centerX + 18, centerY - 14));
+      }
+      if (Math.random() < legendaryModuleChance) {
+        this.pickups.push(new BonusPickup(this, "moduleLegendary", centerX - 18, centerY - 14));
+      }
 
       this.floaters.add(`+${coinReward}c`, centerX, container.y - 8, "#ffd34d", {
         life: 0.9,
@@ -1661,7 +1677,7 @@
       this.leverReady = false;
       this.leverPulled = true;
       this.levelAdvanceReady = true;
-      this.worldLayout = this.createWorldLayout();
+      this.worldLayout = this.createWorldLayout({ preserveLootContainers: true });
       this.floaters.add("LEVER", this.worldLayout.lever.x + this.worldLayout.lever.w * 0.5, this.worldLayout.lever.y - 10, "#ffd34d", {
         life: 0.85,
         scale: 0.95,
@@ -1680,9 +1696,8 @@
         return false;
       }
 
-      this.player.keycards = Math.max(0, (this.player.keycards || 0) - 1);
       this.doorOpen = true;
-      this.worldLayout = this.createWorldLayout();
+      this.worldLayout = this.createWorldLayout({ preserveLootContainers: true });
       this.ui.showNotification("Security door unlocked", "accent", 2600);
       this.audio.playSfx("ui");
       return true;
@@ -1918,7 +1933,7 @@
         this.player.y = GameUtils.clamp(this.player.y, this.player.radius + 4, this.height - this.player.radius - 4);
       }
       if (this.worldLayout) {
-        this.worldLayout = this.createWorldLayout();
+        this.worldLayout = this.createWorldLayout({ preserveLootContainers: true });
         this.traps = this.createTrapsForLocation(this.traps);
       }
     }
@@ -3480,6 +3495,42 @@
       return total;
     }
 
+    addRareLoot(amount) {
+      const added = Math.max(0, Math.round(amount || 0));
+      if (added <= 0) {
+        return 0;
+      }
+
+      this.rareLoot += added;
+      this.floaters.add(`+${added} RC`, this.player.x, this.player.y - 36, "#b6f8ff", {
+        life: 0.9,
+        scale: 0.98,
+        velocityY: -26
+      });
+      this.ui.showNotification(added > 1 ? `Rail Cores +${added}` : "Rail Core collected", "accent", 2000);
+      return added;
+    }
+
+    addSkillPoints(amount, options = {}) {
+      const added = Math.max(0, Math.round(amount || 0));
+      if (added <= 0) {
+        return 0;
+      }
+
+      this.skillPoints += added;
+      if (options.floaters !== false) {
+        this.floaters.add(`+${added} SP`, this.player.x, this.player.y - 42, "#ffe38a", {
+          life: 0.9,
+          scale: 0.98,
+          velocityY: -26
+        });
+      }
+      if (options.notify !== false) {
+        this.ui.showNotification(added > 1 ? `Skill points +${added}` : "Skill point earned", "accent", 1900);
+      }
+      return added;
+    }
+
     addGrenades(amount, options = {}) {
       const added = this.player.addGrenades(amount);
       if (added > 0) {
@@ -3604,6 +3655,10 @@
         this.ui.showNotification(`${zombie.base.name || "Boss"} eliminated`, "danger", 2600);
         this.stats.score += Math.round(500 * scoreMult);
         this.addCoins(120);
+        this.addSkillPoints(1, { notify: false });
+        if (Math.random() < 0.55) {
+          this.pickups.push(new BonusPickup(this, "rareTech", zombie.x + 18, zombie.y - 10));
+        }
       }
 
       if (this.waveManager.state === "active" && this.zombies.length === 0 && this.waveManager.spawned >= this.waveManager.totalToSpawn) {
@@ -3662,6 +3717,8 @@
     resetRun() {
       const mode = this.getModeSettings();
       this.coins = mode.startCoins || 0;
+      this.rareLoot = 0;
+      this.skillPoints = 0;
       this.stats = this.createStats();
       this.zombies.length = 0;
       this.bullets.length = 0;
@@ -3701,6 +3758,8 @@
       this.bonuses.reset();
       this.missions.reset();
       this.coins = 0;
+      this.rareLoot = 0;
+      this.skillPoints = 0;
       this.stats = this.createStats();
       this.resetLevelState(false);
       this.ui.setMode("menu");

@@ -36,6 +36,14 @@
       this.ownedWeapons = new Set(WEAPON_KEYS.slice(0, 4));
       this.weaponStates = {};
       this.weaponModules = {};
+      this.skills = {
+        vitality: 0,
+        agility: 0,
+        weaponsmith: 0,
+        armorSmith: 0,
+        scavenger: 0,
+        overcharge: 0
+      };
       this.upgrades = {
         health: 0,
         regen: 0,
@@ -63,7 +71,7 @@
       if (this.game.getModeSettings?.().oneHp) {
         return 1;
       }
-      return 100 + this.upgrades.health * 20;
+      return 100 + this.upgrades.health * 20 + (this.skills.vitality || 0) * 15;
     }
 
     getRegenRate() {
@@ -71,15 +79,15 @@
     }
 
     getMoveSpeed() {
-      return 250 + this.upgrades.speed * 22;
+      return 250 + this.upgrades.speed * 22 + (this.skills.agility || 0) * 14;
     }
 
     getArmor() {
-      return this.upgrades.armor * 2;
+      return this.upgrades.armor * 2 + (this.skills.armorSmith || 0) * 2;
     }
 
     getDamageReduction() {
-      return Math.min(0.5, this.upgrades.reduction * 0.04);
+      return Math.min(0.5, this.upgrades.reduction * 0.04 + (this.skills.armorSmith || 0) * 0.015);
     }
 
     getDashData() {
@@ -156,6 +164,21 @@
         return "None";
       }
       return modules.map((module) => `${module.short}${module.level}`).join(" ");
+    }
+
+    getSkillLevel(skillKey) {
+      return this.skills?.[skillKey] || 0;
+    }
+
+    applySkill(skillKey) {
+      if (!this.skills || !(skillKey in this.skills)) {
+        return false;
+      }
+      this.skills[skillKey] += 1;
+      if (skillKey === "vitality") {
+        this.hp = Math.min(this.getMaxHp(), this.hp + 15);
+      }
+      return true;
     }
 
     addWeaponModule(moduleKey, weaponKey = this.weaponKey) {

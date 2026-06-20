@@ -463,9 +463,15 @@
               const isWeaponUnlock = item.kind === "weaponUnlock";
               const isModule = item.kind === "module";
               const isResource = item.kind === "resource";
-              const actionLabel = isWeaponUnlock ? "Unlock" : isModule ? "Attach" : isResource ? (item.resourceKey === "grenade" ? "Take" : "Refill") : "Buy";
+              const isCraft = item.kind === "craftWeapon";
+              const isSkill = item.kind === "skill";
+              const actionLabel = isCraft ? "Craft" : isSkill ? "Learn" : isWeaponUnlock ? "Unlock" : isModule ? "Attach" : isResource ? (item.resourceKey === "grenade" ? "Take" : "Refill") : "Buy";
               const titleMeta = isWeaponUnlock
                 ? "Weapon unlock"
+                : isCraft
+                  ? "Trader craft"
+                : isSkill
+                  ? "Skill tree"
                 : isModule
                   ? `Affects ${this.game.player.getCurrentWeaponName()}`
                   : isResource
@@ -473,15 +479,27 @@
                   : `Level ${item.level} / ${item.maxLevel}`;
               const subMeta = isWeaponUnlock
                 ? "New weapon"
+                : isCraft
+                  ? item.previewText
+                : isSkill
+                  ? `Lv ${item.level}/${item.maxLevel}`
                 : isResource
                   ? item.previewText
                   : isModule
                     ? item.previewText
                     : item.previewText;
-              const costLabel = item.lockedByMode ? "LOCKED" : item.maxed ? (isResource ? "FULL" : "MAX") : `${item.cost} coins`;
+              const costLabel = item.lockReason
+                ? "LOCKED"
+                : item.maxed
+                  ? (isResource ? "FULL" : isSkill ? "LEARNED" : "MAX")
+                  : isCraft
+                    ? `${item.rareLootCost || 0} RC`
+                    : isSkill
+                      ? `${item.cost} SP`
+                      : `${item.cost} coins`;
               const buttonDisabled = !item.affordable || item.maxed;
               return `
-              <article class="shop-card ${item.maxed ? "shop-card--maxed" : ""} ${isWeaponUnlock ? "shop-card--weapon" : ""} ${isResource ? "shop-card--supply" : ""} ${isModule ? "shop-card--module" : ""}">
+              <article class="shop-card ${item.maxed ? "shop-card--maxed" : ""} ${isWeaponUnlock || isCraft ? "shop-card--weapon" : ""} ${isResource ? "shop-card--supply" : ""} ${isModule ? "shop-card--module" : ""} ${isSkill ? "shop-card--skill" : ""}">
                 <div class="shop-card__head">
                   <div>
                     <h3 class="shop-card__name">${item.name}</h3>
@@ -491,12 +509,14 @@
                 </div>
                 <p class="shop-card__desc">${item.description}</p>
                 ${isWeaponUnlock ? `<div class="shop-card__stats">${item.previewText}</div>` : ""}
+                ${isCraft ? `<div class="shop-card__stats">${item.preview(item.level)} · ${item.previewText}</div>` : ""}
                 ${isResource ? `<div class="shop-card__stats">${item.previewText}</div>` : ""}
                 ${isModule ? `<div class="shop-card__stats">${item.previewText}</div>` : ""}
+                ${isSkill ? `<div class="shop-card__stats">${item.previewText}${item.requirementText ? ` · ${item.requirementText}` : ""}</div>` : ""}
                 <div class="shop-card__footer">
                   <span class="shop-card__cost">${costLabel}</span>
                   <button class="btn ${item.affordable && !item.maxed ? "btn--primary" : ""}" data-upgrade-id="${item.id}" ${buttonDisabled ? "disabled" : ""}>
-                    ${item.lockedByMode ? "Locked" : item.maxed ? (isResource ? "Full" : "Owned") : actionLabel}
+                    ${item.lockReason ? "Locked" : item.maxed ? (isResource ? "Full" : isSkill ? "Learned" : "Owned") : actionLabel}
                   </button>
                 </div>
               </article>
@@ -666,6 +686,8 @@
           <h3 class="shop-category__title">Resources</h3>
           <div class="inventory-list">
             <article class="inventory-card"><span class="inventory-card__label">Coins</span><strong>${this.game.coins.toLocaleString()}</strong><span>Spend at shops and traders</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Rail Cores</span><strong>${this.game.rareLoot || 0}</strong><span>Craft Railgun at trader</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Skill Points</span><strong>${this.game.skillPoints || 0}</strong><span>Unlock skill tree nodes</span></article>
             <article class="inventory-card"><span class="inventory-card__label">Ammo</span><strong>${player.getAmmoText()}</strong><span>Reserve and magazine</span></article>
             <article class="inventory-card"><span class="inventory-card__label">Grenades</span><strong>${player.getGrenadeText()}</strong><span>Throw with H or right click</span></article>
             <article class="inventory-card"><span class="inventory-card__label">Keycards</span><strong>${player.keycards || 0}</strong><span>Open security doors</span></article>
