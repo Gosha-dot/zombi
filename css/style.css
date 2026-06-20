@@ -381,6 +381,19 @@ body::after {
   color: var(--accent);
 }
 
+.mission-item--large {
+  padding: 14px 16px;
+  border-color: rgba(181, 255, 199, 0.14);
+}
+
+.mission-item--large .mission-item__title {
+  font-size: 1rem;
+}
+
+.mission-item--large .mission-item__bar {
+  height: 9px;
+}
+
 .mission-item__bar {
   height: 6px;
   overflow: hidden;
@@ -815,6 +828,25 @@ body::after {
   font-size: 0.84rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.quests-body {
+  display: grid;
+  gap: 16px;
+}
+
+.quests-summary {
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 211, 77, 0.16);
+  background:
+    linear-gradient(180deg, rgba(20, 18, 10, 0.72), rgba(5, 10, 8, 0.92)),
+    linear-gradient(135deg, rgba(255, 211, 77, 0.08), rgba(103, 240, 167, 0.04));
+}
+
+.quests-list {
+  display: grid;
+  gap: 12px;
 }
 
 .summary-card {

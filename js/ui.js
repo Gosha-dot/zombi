@@ -35,6 +35,10 @@
         worldMapCanvas: byId("worldMapCanvas"),
         mapInfoText: byId("mapInfoText"),
         closeMapBtn: byId("closeMapBtn"),
+        questsPanel: byId("questsPanel"),
+        questsList: byId("questsList"),
+        questsRewardText: byId("questsRewardText"),
+        closeQuestsBtn: byId("closeQuestsBtn"),
         notifications: byId("notificationLayer"),
         mainMenu: byId("mainMenu"),
         startGameBtn: byId("startGameBtn"),
@@ -83,6 +87,7 @@
       this.els.closeSettingsBtn.addEventListener("click", () => this.showMenu());
       this.els.startNextWaveBtn.addEventListener("click", () => this.game.waveManager.skipCountdown());
       this.els.closeMapBtn.addEventListener("click", () => this.closeMap());
+      this.els.closeQuestsBtn.addEventListener("click", () => this.closeQuests());
       this.els.saveScoreBtn.addEventListener("click", () => this.saveScore());
       this.els.playAgainBtn.addEventListener("click", () => this.game.startNewRun());
       this.els.mainMenuBtn.addEventListener("click", () => this.game.returnToMenu());
@@ -219,6 +224,7 @@
       this.minimapCtx = this.els.miniMapCanvas ? this.els.miniMapCanvas.getContext("2d") : null;
       this.mapCtx = this.els.worldMapCanvas ? this.els.worldMapCanvas.getContext("2d") : null;
       this.mapOpen = false;
+      this.questsOpen = false;
     }
 
     updateSettings() {
@@ -249,6 +255,7 @@
       hideModal(this.els.settingsPanel);
       hideModal(this.els.gameOverPanel);
       hideModal(this.els.mapPanel);
+      hideModal(this.els.questsPanel);
 
       if (mode !== "intermission") {
         hideModal(this.els.shopPanel);
@@ -269,6 +276,7 @@
 
       if (mode !== "playing" && mode !== "intermission") {
         this.mapOpen = false;
+        this.questsOpen = false;
       }
     }
 
@@ -324,6 +332,30 @@
         this.closeMap();
       } else {
         this.openMap();
+      }
+    }
+
+    openQuests() {
+      if (this.game.state !== "playing" && this.game.state !== "intermission") {
+        return;
+      }
+      this.questsOpen = true;
+      this.els.questsPanel.classList.remove("panel--hidden");
+      this.els.questsPanel.setAttribute("aria-hidden", "false");
+      this.renderQuests();
+    }
+
+    closeQuests() {
+      this.questsOpen = false;
+      this.els.questsPanel.classList.add("panel--hidden");
+      this.els.questsPanel.setAttribute("aria-hidden", "true");
+    }
+
+    toggleQuests() {
+      if (this.questsOpen) {
+        this.closeQuests();
+      } else {
+        this.openQuests();
       }
     }
 
@@ -463,6 +495,9 @@
         .join("");
 
       this.renderMissions();
+      if (this.questsOpen) {
+        this.renderQuests();
+      }
       this.renderMinimap();
       if (this.mapOpen) {
         this.renderWorldMap();
@@ -476,9 +511,23 @@
 
       const missions = this.game.missions.getMissions();
       this.els.missionRewardText.textContent = this.game.missions.getClearedText();
-      this.els.missionList.innerHTML = missions
+      this.els.missionList.innerHTML = this.getMissionMarkup(missions);
+    }
+
+    renderQuests() {
+      if (!this.els.questsPanel || !this.els.questsList || !this.game.missions) {
+        return;
+      }
+
+      const missions = this.game.missions.getMissions();
+      this.els.questsRewardText.textContent = this.game.missions.getClearedText();
+      this.els.questsList.innerHTML = this.getMissionMarkup(missions, "quest");
+    }
+
+    getMissionMarkup(missions, variant = "mission") {
+      return missions
         .map((mission) => `
-          <article class="mission-item ${mission.completed ? "mission-item--complete" : ""}">
+          <article class="mission-item ${variant === "quest" ? "mission-item--large" : ""} ${mission.completed ? "mission-item--complete" : ""}">
             <div class="mission-item__top">
               <span class="mission-item__title">${mission.title}</span>
               <span class="mission-item__progress">${mission.progressText}</span>
@@ -549,6 +598,7 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMini);
+      this.drawAmmoBoxMarker(ctx, toMini, 3.4);
 
       for (const pickup of this.game.pickups) {
         const point = toMini(pickup.x, pickup.y);
@@ -563,9 +613,10 @@
           continue;
         }
         const point = toMini(zombie.x, zombie.y);
-        ctx.fillStyle = zombie.type === "boss" ? "#ff4c4c" : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
+        const isBoss = zombie.isBoss?.();
+        ctx.fillStyle = isBoss ? zombie.base.color : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
         ctx.beginPath();
-        ctx.arc(point.x, point.y, zombie.type === "boss" ? 4.3 : 2.5, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, isBoss ? 4.3 : 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -651,6 +702,7 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMap);
+      this.drawAmmoBoxMarker(ctx, toMap, 6);
 
       for (const pickup of this.game.pickups) {
         const point = toMap(pickup.x, pickup.y);
@@ -665,9 +717,10 @@
           continue;
         }
         const point = toMap(zombie.x, zombie.y);
-        ctx.fillStyle = zombie.type === "boss" ? "#ff4c4c" : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
+        const isBoss = zombie.isBoss?.();
+        ctx.fillStyle = isBoss ? zombie.base.color : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
         ctx.beginPath();
-        ctx.arc(point.x, point.y, zombie.type === "boss" ? 7 : 4.2, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, isBoss ? 7 : 4.2, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -763,6 +816,29 @@
         ctx.strokeRect(start.x, start.y, width, height);
         ctx.restore();
       }
+      ctx.restore();
+    }
+
+    drawAmmoBoxMarker(ctx, toPoint, size) {
+      const box = this.game.worldLayout?.ammoBox;
+      if (!box) {
+        return;
+      }
+
+      const point = toPoint(box.x + box.w * 0.5, box.y + box.h * 0.5);
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 211, 77, 0.95)";
+      ctx.strokeStyle = "rgba(3, 8, 6, 0.92)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.rect(point.x - size, point.y - size, size * 2, size * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(3, 8, 6, 0.95)";
+      ctx.font = `700 ${Math.max(8, size * 1.6)}px Bahnschrift, Trebuchet MS, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("A", point.x, point.y + 0.5);
       ctx.restore();
     }
 

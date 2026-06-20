@@ -1,4 +1,6 @@
 (function (global) {
+  const ZOMBIE_SPEED_MULTIPLIER = 1 / 1.5;
+
   const ZOMBIE_DEFS = {
     walker: {
       key: "walker",
@@ -17,7 +19,7 @@
       key: "runner",
       name: "Runner",
       radius: 16,
-      speed: 118,
+      speed: 96,
       hp: 36,
       damage: 11,
       score: 45,
@@ -150,6 +152,7 @@
     boss: {
       key: "boss",
       name: "Boss",
+      isBoss: true,
       radius: 36,
       speed: 58,
       hp: 680,
@@ -159,6 +162,60 @@
       color: "#d84b4b",
       eye: "#ffffff",
       headScale: 0.42
+    },
+    plagueBoss: {
+      key: "plagueBoss",
+      name: "Plague Boss",
+      isBoss: true,
+      radius: 34,
+      speed: 52,
+      hp: 620,
+      damage: 24,
+      score: 850,
+      coins: 235,
+      color: "#67b85d",
+      eye: "#e9ffd0",
+      headScale: 0.42,
+      projectileColor: "#9aff8f",
+      projectileSpeed: 280,
+      projectileDamage: 14,
+      fireCooldown: 1.9,
+      preferredRange: 330,
+      splashRadius: 64,
+      splashDamage: 14
+    },
+    juggernautBoss: {
+      key: "juggernautBoss",
+      name: "Juggernaut Boss",
+      isBoss: true,
+      radius: 42,
+      speed: 42,
+      hp: 880,
+      damage: 34,
+      score: 950,
+      coins: 260,
+      color: "#9b7b61",
+      eye: "#ffe19a",
+      headScale: 0.4
+    },
+    screamerBoss: {
+      key: "screamerBoss",
+      name: "Screamer Boss",
+      isBoss: true,
+      radius: 32,
+      speed: 68,
+      hp: 560,
+      damage: 22,
+      score: 880,
+      coins: 240,
+      color: "#c96cff",
+      eye: "#fff0ff",
+      headScale: 0.43,
+      projectileColor: "#e0a7ff",
+      projectileSpeed: 360,
+      projectileDamage: 11,
+      fireCooldown: 1.45,
+      preferredRange: 300
     }
   };
 
@@ -181,8 +238,8 @@
       this.attackCooldown = 0;
       this.rangedCooldown = 0;
       this.dashCooldown = 0;
-      this.bossAttackTimer = this.type === "boss" ? 2.4 + Math.random() * 0.9 : 0;
-      this.bossAttackIndex = this.type === "boss" ? Math.floor(Math.random() * 3) : 0;
+      this.bossAttackTimer = this.isBoss() ? 2.4 + Math.random() * 0.9 : 0;
+      this.bossAttackIndex = this.isBoss() ? Math.floor(Math.random() * 3) : 0;
       this.bossRushTime = 0;
       this.bossRushVector = { x: 0, y: 0 };
       this.alive = true;
@@ -203,7 +260,7 @@
       if (this.type === "runner") {
         this.maxHp = Math.round(this.base.hp * waveScale * 0.9);
         this.hp = this.maxHp;
-        this.speed = this.base.speed * speedScale * 1.1;
+        this.speed = this.base.speed * speedScale * 1.02;
         this.damage = Math.round(this.base.damage * damageScale * 1.05);
       } else if (this.type === "stalker") {
         this.maxHp = Math.round(this.base.hp * waveScale * 0.92);
@@ -230,11 +287,14 @@
         this.hp = this.maxHp;
         this.speed = this.base.speed * speedScale;
         this.damage = Math.round(this.base.damage * damageScale * 1.08);
-      } else if (this.type === "boss") {
-        this.maxHp = Math.round(this.base.hp * waveScale * 1.35);
+      } else if (this.isBoss()) {
+        const bossHpScale = this.type === "juggernautBoss" ? 1.45 : this.type === "screamerBoss" ? 1.18 : 1.35;
+        const bossSpeedScale = this.type === "juggernautBoss" ? 0.84 : this.type === "screamerBoss" ? 1.04 : 0.92;
+        const bossDamageScale = this.type === "juggernautBoss" ? 1.28 : this.type === "screamerBoss" ? 1.08 : 1.18;
+        this.maxHp = Math.round(this.base.hp * waveScale * bossHpScale);
         this.hp = this.maxHp;
-        this.speed = this.base.speed * speedScale * 0.92;
-        this.damage = Math.round(this.base.damage * damageScale * 1.18);
+        this.speed = this.base.speed * speedScale * bossSpeedScale;
+        this.damage = Math.round(this.base.damage * damageScale * bossDamageScale);
       } else if (this.type === "shooter") {
         this.maxHp = Math.round(this.base.hp * waveScale * 1.08);
         this.hp = this.maxHp;
@@ -269,6 +329,10 @@
 
     getHeadRadius() {
       return this.radius * this.base.headScale;
+    }
+
+    isBoss() {
+      return Boolean(this.base.isBoss);
     }
 
     takeDamage(amount, meta = {}) {
@@ -308,9 +372,9 @@
         return;
       }
       this.exploded = true;
-      const radius = this.type === "boss" ? 150 : 110;
-      const damage = this.type === "boss" ? 34 : 26;
-      this.game.spawnExplosion(this.x, this.y, radius, damage, this.type === "boss" ? "#ff6a6a" : "#ff8f62");
+      const radius = this.isBoss() ? 150 : 110;
+      const damage = this.isBoss() ? 34 : 26;
+      this.game.spawnExplosion(this.x, this.y, radius, damage, this.isBoss() ? this.base.color : "#ff8f62");
     }
 
     shootAtPlayer() {
@@ -330,10 +394,10 @@
         y: originY,
         vx: (dx / length) * projectileSpeed,
         vy: (dy / length) * projectileSpeed,
-        radius: this.type === "spitter" ? 5.4 : this.type === "harpooner" ? 5.1 : 4.2,
+        radius: this.type === "spitter" || this.type === "plagueBoss" ? 5.4 : this.type === "harpooner" ? 5.1 : 4.2,
         damage: this.base.projectileDamage || this.damage,
         color: this.base.projectileColor || "#b46cff",
-        glow: this.type === "spitter" ? "rgba(142, 242, 140, 0.72)" : this.type === "harpooner" ? "rgba(189, 239, 255, 0.76)" : "rgba(208, 176, 255, 0.72)",
+        glow: this.type === "spitter" || this.type === "plagueBoss" ? "rgba(142, 242, 140, 0.72)" : this.type === "harpooner" ? "rgba(189, 239, 255, 0.76)" : "rgba(208, 176, 255, 0.72)",
         life: 3.2,
         sourceType: this.type,
         splashRadius: this.base.splashRadius || 0,
@@ -348,7 +412,7 @@
     }
 
     triggerBossAttack() {
-      if (this.type !== "boss") {
+      if (!this.isBoss()) {
         return;
       }
 
@@ -363,7 +427,7 @@
       if (attack === 0) {
         this.attackFlash = 0.4;
         this.game.addShake(5.5);
-        this.game.particles.explosion(this.x, this.y, 18, "#ff6b6b");
+        this.game.particles.explosion(this.x, this.y, 18, this.base.color);
         this.game.audio.playSfx("explode");
         for (const zombie of this.game.zombies) {
           if (zombie === this || !zombie.alive) {
@@ -382,8 +446,9 @@
         this.game.addShake(3.5);
         this.game.audio.playSfx("bonus");
         this.game.particles.sparks(this.x, this.y, 16, "#ffd66e");
-        const summonTypes = ["walker", "runner", "stalker"];
-        for (let i = 0; i < 2; i += 1) {
+        const summonTypes = this.type === "plagueBoss" ? ["spitter", "crawler", "exploder"] : this.type === "screamerBoss" ? ["runner", "stalker", "harpooner"] : ["walker", "runner", "stalker"];
+        const summonCount = this.type === "screamerBoss" ? 3 : 2;
+        for (let i = 0; i < summonCount; i += 1) {
           const angle = (Math.PI * 2 * i) / 2 + Math.random() * 0.6;
           const spawn = {
             x: this.x + Math.cos(angle) * (this.radius + 38),
@@ -393,7 +458,7 @@
         }
       } else {
         this.attackFlash = 0.28;
-        this.bossRushTime = 0.7;
+        this.bossRushTime = this.type === "juggernautBoss" ? 0.9 : 0.7;
         this.bossRushVector = { x: normalizedX, y: normalizedY };
         this.game.addShake(4);
         this.game.particles.sparks(this.x, this.y, 14, "#ffffff");
@@ -401,7 +466,7 @@
       }
 
       this.bossAttackIndex = (this.bossAttackIndex + 1) % 3;
-      this.bossAttackTimer = this.type === "boss" ? 3.6 + Math.max(0, 5 - this.game.waveManager.wave) * 0.08 : 0;
+      this.bossAttackTimer = this.isBoss() ? 3.6 + Math.max(0, 5 - this.game.waveManager.wave) * 0.08 : 0;
     }
 
     die(meta = {}) {
@@ -448,13 +513,13 @@
       const directionY = dy / dist;
       this.angle = Math.atan2(dy, dx);
 
-      const wobble = Math.sin(this.wiggle + this.game.worldTime * 2.2) * (this.type === "runner" ? 0.14 : 0.06);
+      const wobble = Math.sin(this.wiggle + this.game.worldTime * 2.2) * (this.type === "runner" ? 0.12 : 0.06);
       let moveX = directionX + (-directionY * wobble);
       let moveY = directionY + (directionX * wobble);
-      let speed = this.speed * freezeFactor;
+      let speed = this.speed * freezeFactor * ZOMBIE_SPEED_MULTIPLIER;
 
       if (this.type === "runner") {
-        speed *= 1.08 + Math.sin(this.game.worldTime * 4 + this.wiggle) * 0.05;
+        speed *= 1.02 + Math.sin(this.game.worldTime * 4 + this.wiggle) * 0.04;
       }
 
       if (this.type === "crawler") {
@@ -523,19 +588,19 @@
         }
       }
 
-      if (this.type === "boss" && this.hp < this.maxHp * 0.45) {
-        speed *= 1.16;
+      if (this.isBoss() && this.hp < this.maxHp * 0.45) {
+        speed *= this.type === "juggernautBoss" ? 1.08 : 1.16;
       }
 
       if (this.type === "brute" && this.hp < this.maxHp * 0.35) {
         speed *= 1.08;
       }
 
-      if (this.type === "boss" && this.bossRushTime > 0) {
+      if (this.isBoss() && this.bossRushTime > 0) {
         this.bossRushTime -= dt;
         moveX = this.bossRushVector.x;
         moveY = this.bossRushVector.y;
-        speed *= 3.1;
+        speed *= this.type === "juggernautBoss" ? 3.4 : 3.1;
         this.attackFlash = Math.max(this.attackFlash, 0.15);
       }
 
@@ -549,7 +614,7 @@
 
       const contactRange = this.radius + this.game.player.radius - 4;
       if (dist <= contactRange && this.attackCooldown <= 0) {
-        this.attackCooldown = this.type === "boss" ? 0.6 : 0.8;
+        this.attackCooldown = this.isBoss() ? 0.6 : 0.8;
         this.attackFlash = 0.16;
         this.game.player.takeDamage(this.damage, this.x, this.y);
         this.game.audio.playSfx("zombieBite");
@@ -582,13 +647,20 @@
         }
       }
 
-      if (this.type === "boss") {
+      if (this.type === "plagueBoss" || this.type === "screamerBoss") {
+        const preferredRange = this.base.preferredRange || 310;
+        if (dist <= preferredRange * 1.25 && this.rangedCooldown <= 0) {
+          this.shootAtPlayer();
+        }
+      }
+
+      if (this.isBoss()) {
         this.pulseTimer -= dt;
         if (this.pulseTimer <= 0) {
-          this.pulseTimer = 4.5;
+          this.pulseTimer = this.type === "screamerBoss" ? 3.8 : 4.5;
           this.attackFlash = 0.28;
           this.game.addShake(4);
-          this.game.particles.explosion(this.x, this.y, 12, "#ff4c4c");
+          this.game.particles.explosion(this.x, this.y, 12, this.base.color);
           if (dist < 240) {
             this.game.player.takeDamage(this.damage * 0.85, this.x, this.y);
           }
@@ -613,12 +685,12 @@
 
       const angle = this.angle;
       const spawnProgress = 1 - GameUtils.clamp(this.spawnPulse / 0.42, 0, 1);
-      const pulse = this.type === "boss" ? 1 + Math.sin(this.game.worldTime * 3) * 0.04 + (this.bossRushTime > 0 ? 0.08 : 0) : 1;
+      const pulse = this.isBoss() ? 1 + Math.sin(this.game.worldTime * 3) * 0.04 + (this.bossRushTime > 0 ? 0.08 : 0) : 1;
       const bodyColor = this.base.color;
-      const shadowAlpha = this.type === "boss" ? 0.6 : 0.35;
+      const shadowAlpha = this.isBoss() ? 0.6 : 0.35;
       const bodyRadius = this.radius * pulse;
-      const bobAmplitude = this.type === "boss" ? 2.2 : this.type === "stalker" ? 1.4 : this.type === "spitter" ? 1 : 0.7;
-      const bobSpeed = this.type === "boss" ? 2.4 : this.type === "stalker" ? 7 : this.type === "spitter" ? 3.2 : this.type === "runner" ? 4.8 : 3.6;
+      const bobAmplitude = this.isBoss() ? 2.2 : this.type === "stalker" ? 1.4 : this.type === "spitter" ? 1 : 0.7;
+      const bobSpeed = this.isBoss() ? 2.4 : this.type === "stalker" ? 7 : this.type === "spitter" ? 3.2 : this.type === "runner" ? 4.8 : 3.6;
       const bob = Math.sin(this.game.worldTime * bobSpeed + this.animSeed) * bobAmplitude;
       const overallScale = (0.86 + spawnProgress * 0.14) * (1 + this.attackFlash * 0.05) * (this.hitFlash > 0 ? 1 + this.hitFlash * 0.08 : 1);
 
@@ -628,12 +700,12 @@
       ctx.translate(0, bob);
       ctx.scale(overallScale, overallScale);
 
-      if (this.type === "boss") {
+      if (this.isBoss()) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         const aura = ctx.createRadialGradient(0, 0, bodyRadius * 0.5, 0, 0, bodyRadius * 2.6);
-        aura.addColorStop(0, "rgba(255, 126, 126, 0.28)");
-        aura.addColorStop(0.6, "rgba(255, 96, 96, 0.14)");
+        aura.addColorStop(0, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.26)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.25)" : "rgba(255, 126, 126, 0.28)");
+        aura.addColorStop(0.6, this.type === "plagueBoss" ? "rgba(120, 255, 138, 0.1)" : this.type === "screamerBoss" ? "rgba(213, 124, 255, 0.12)" : "rgba(255, 96, 96, 0.14)");
         aura.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = aura;
         ctx.beginPath();
@@ -711,7 +783,7 @@
       ctx.lineTo(bodyRadius * 1.4, bodyRadius * 0.24);
       ctx.stroke();
 
-      if (this.type === "boss") {
+      if (this.isBoss()) {
         ctx.strokeStyle = this.attackFlash > 0 ? "rgba(255, 232, 163, 0.92)" : "rgba(255, 103, 103, 0.8)";
         ctx.lineWidth = this.attackFlash > 0 ? 2.6 : 2;
         ctx.beginPath();
@@ -721,6 +793,42 @@
         ctx.beginPath();
         ctx.arc(0, 0, bodyRadius + 12, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      if (this.type === "plagueBoss") {
+        ctx.save();
+        ctx.fillStyle = "rgba(154, 255, 143, 0.62)";
+        for (let i = 0; i < 4; i += 1) {
+          const angle = (Math.PI * 2 * i) / 4 + this.game.worldTime * 0.8;
+          ctx.beginPath();
+          ctx.arc(Math.cos(angle) * bodyRadius * 0.62, Math.sin(angle) * bodyRadius * 0.42, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (this.type === "juggernautBoss") {
+        ctx.save();
+        ctx.fillStyle = "rgba(38, 31, 25, 0.5)";
+        ctx.beginPath();
+        ctx.arc(-bodyRadius * 0.16, -bodyRadius * 0.14, bodyRadius * 0.74, Math.PI * 0.12, Math.PI * 1.08);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 225, 154, 0.48)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (this.type === "screamerBoss") {
+        ctx.save();
+        ctx.strokeStyle = "rgba(224, 167, 255, 0.62)";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i += 1) {
+          ctx.beginPath();
+          ctx.arc(0, 0, bodyRadius + 18 + i * 8 + Math.sin(this.game.worldTime * 5 + i) * 2, -0.6, 0.6);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
 
       if (this.type === "exploder") {

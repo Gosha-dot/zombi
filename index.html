@@ -185,6 +185,23 @@
         </div>
       </section>
 
+      <section id="questsPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Objectives</p>
+            <h2 class="panel__title">Quests</h2>
+          </div>
+          <button id="closeQuestsBtn" class="btn btn--ghost">Close</button>
+        </div>
+        <div class="panel__body quests-body">
+          <div class="quests-summary">
+            <span class="hud__label">Progress</span>
+            <strong id="questsRewardText" class="hud__value">0 / 4 cleared</strong>
+          </div>
+          <div id="questsList" class="quests-list"></div>
+        </div>
+      </section>
+
       <section id="gameOverPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
         <div class="panel__header">
           <div>

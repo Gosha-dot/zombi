@@ -349,7 +349,8 @@
       const wave = this.game.waveManager.wave;
       const locationProfile = this.game.worldLayout?.lootProfile || {};
       const dropCeiling = locationProfile.baseChance || 0.24;
-      const baseChance = zombie.type === "boss"
+      const isBoss = zombie.isBoss?.();
+      const baseChance = isBoss
         ? 1
         : Math.min(dropCeiling, 0.14 + wave * 0.004 + (locationProfile.chanceBonus || 0));
       if (Math.random() > baseChance) {
@@ -357,23 +358,23 @@
       }
 
       const defaultWeights = [
-        ["healthPack", zombie.type === "boss" ? 20 : 24],
-        ["fullHeal", zombie.type === "boss" ? 8 : 2],
-        ["ammoPack", zombie.type === "boss" ? 16 : 8],
-        ["armorPlate", zombie.type === "boss" ? 10 : 4],
+        ["healthPack", isBoss ? 20 : 24],
+        ["fullHeal", isBoss ? 8 : 2],
+        ["ammoPack", isBoss ? 16 : 8],
+        ["armorPlate", isBoss ? 10 : 4],
         ["doubleDamage", 18],
         ["rapidFire", 16],
         ["shield", 15],
         ["coinMultiplier", 12],
         ["freeze", 11],
-        ["nuke", zombie.type === "boss" ? 14 : 4],
-        ["grenadePack", zombie.type === "boss" ? 16 : 7],
-        ["moduleDamage", zombie.type === "boss" ? 13 : 6],
-        ["moduleRapid", zombie.type === "boss" ? 12 : 5],
-        ["moduleMagazine", zombie.type === "boss" ? 12 : 5],
-        ["moduleReload", zombie.type === "boss" ? 11 : 5],
-        ["moduleOptic", zombie.type === "boss" ? 10 : 4],
-        ["modulePierce", zombie.type === "boss" ? 9 : 3]
+        ["nuke", isBoss ? 14 : 4],
+        ["grenadePack", isBoss ? 16 : 7],
+        ["moduleDamage", isBoss ? 13 : 6],
+        ["moduleRapid", isBoss ? 12 : 5],
+        ["moduleMagazine", isBoss ? 12 : 5],
+        ["moduleReload", isBoss ? 11 : 5],
+        ["moduleOptic", isBoss ? 10 : 4],
+        ["modulePierce", isBoss ? 9 : 3]
       ];
       const weights = (locationProfile.weights || defaultWeights).map(([type, weight]) => {
         const bonus = locationProfile.bonusBoosts?.[type] || 0;
@@ -392,7 +393,7 @@
         return "healthPack";
       };
 
-      const count = zombie.type === "boss" ? 2 : locationProfile.count || 1;
+      const count = isBoss ? 2 : locationProfile.count || 1;
       const drops = [];
       for (let i = 0; i < count; i += 1) {
         const type = pickWeighted();

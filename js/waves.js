@@ -88,7 +88,10 @@
 
     chooseType() {
       if (this.bossWave && this.spawned === 0) {
-        return "boss";
+        const bossTypes = this.wave < 10
+          ? ["boss", "plagueBoss"]
+          : ["boss", "plagueBoss", "juggernautBoss", "screamerBoss"];
+        return bossTypes[(Math.floor(this.wave / 5) + Math.floor(Math.random() * bossTypes.length)) % bossTypes.length];
       }
 
       const wave = this.wave;
@@ -268,15 +271,16 @@
 
     spawnZombie() {
       const type = this.chooseType();
-      const spawn = this.game.getEdgeSpawnPoint(type === "boss");
-      const shouldCarryKeycard = !this.game.doorOpen && this.game.player.keycards === 0 && !this.keyCarrierAssigned && type !== "boss";
+      const isBoss = ZOMBIE_DEFS[type]?.isBoss;
+      const spawn = this.game.getEdgeSpawnPoint(isBoss);
+      const shouldCarryKeycard = !this.game.doorOpen && this.game.player.keycards === 0 && !this.keyCarrierAssigned && !isBoss;
       this.game.spawnZombie(type, spawn, { keyCarrier: shouldCarryKeycard });
       if (shouldCarryKeycard) {
         this.keyCarrierAssigned = true;
       }
       this.spawned += 1;
-      if (type === "boss") {
-        this.game.ui.showNotification("Boss deployed", "danger", 2200);
+      if (isBoss) {
+        this.game.ui.showNotification(`${ZOMBIE_DEFS[type]?.name || "Boss"} deployed`, "danger", 2200);
       }
     }
 

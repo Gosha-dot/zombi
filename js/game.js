@@ -495,7 +495,7 @@
           key: "city",
           name: "City",
           weather: "ash",
-          fogDensity: 0.92,
+          atmosphereDensity: 0.92,
           lootProfile: {
             baseChance: 0.24,
             count: 1,
@@ -511,9 +511,6 @@
             backdropBottom: "#010101",
             glowPrimary: "rgba(103,240,167,0.06)",
             glowSecondary: "rgba(255,111,97,0.035)",
-            fogPrimary: "rgba(255,111,97,0.05)",
-            fogSecondary: "rgba(103,240,167,0.05)",
-            fogNeutral: "rgba(255,255,255,0.03)",
             wallFill: "rgba(88, 64, 42, 0.92)",
             steelFill: "rgba(52, 65, 58, 0.95)",
             structureGlow: "rgba(255, 211, 77, 0.15)"
@@ -562,8 +559,8 @@
         {
           key: "laboratory",
           name: "Laboratory",
-          weather: "fog",
-          fogDensity: 1.28,
+          weather: "ash",
+          atmosphereDensity: 1.28,
           lootProfile: {
             baseChance: 0.28,
             count: 1,
@@ -580,9 +577,6 @@
             backdropBottom: "#010302",
             glowPrimary: "rgba(184,255,231,0.08)",
             glowSecondary: "rgba(139,195,255,0.035)",
-            fogPrimary: "rgba(184, 255, 231, 0.07)",
-            fogSecondary: "rgba(139,195,255,0.05)",
-            fogNeutral: "rgba(255,255,255,0.03)",
             wallFill: "rgba(52, 68, 63, 0.95)",
             steelFill: "rgba(46, 62, 69, 0.96)",
             structureGlow: "rgba(156, 255, 224, 0.16)"
@@ -630,8 +624,8 @@
         {
           key: "forest",
           name: "Forest",
-          weather: "fog",
-          fogDensity: 1.36,
+          weather: "ash",
+          atmosphereDensity: 1.36,
           lootProfile: {
             baseChance: 0.26,
             count: 1,
@@ -647,9 +641,6 @@
             backdropBottom: "#010201",
             glowPrimary: "rgba(103,240,167,0.07)",
             glowSecondary: "rgba(255,211,77,0.035)",
-            fogPrimary: "rgba(103,240,167,0.06)",
-            fogSecondary: "rgba(180,220,140,0.04)",
-            fogNeutral: "rgba(255,255,255,0.03)",
             wallFill: "rgba(56, 74, 46, 0.95)",
             steelFill: "rgba(40, 57, 43, 0.96)",
             structureGlow: "rgba(172, 220, 132, 0.16)"
@@ -698,7 +689,7 @@
           key: "warehouse",
           name: "Warehouse",
           weather: "ash",
-          fogDensity: 0.92,
+          atmosphereDensity: 0.92,
           lootProfile: {
             baseChance: 0.27,
             count: 1,
@@ -714,9 +705,6 @@
             backdropBottom: "#010201",
             glowPrimary: "rgba(255,211,77,0.05)",
             glowSecondary: "rgba(255,211,77,0.03)",
-            fogPrimary: "rgba(180,190,180,0.045)",
-            fogSecondary: "rgba(255,211,77,0.04)",
-            fogNeutral: "rgba(255,255,255,0.03)",
             wallFill: "rgba(65, 67, 58, 0.95)",
             steelFill: "rgba(46, 50, 48, 0.96)",
             structureGlow: "rgba(255, 211, 77, 0.13)"
@@ -765,8 +753,8 @@
         {
           key: "hospital",
           name: "Hospital",
-          weather: "fog",
-          fogDensity: 1.55,
+          weather: "ash",
+          atmosphereDensity: 1.55,
           lootProfile: {
             baseChance: 0.3,
             count: 1,
@@ -783,9 +771,6 @@
             backdropBottom: "#010203",
             glowPrimary: "rgba(255,255,255,0.05)",
             glowSecondary: "rgba(103,240,167,0.03)",
-            fogPrimary: "rgba(255,255,255,0.08)",
-            fogSecondary: "rgba(173, 219, 255, 0.05)",
-            fogNeutral: "rgba(255,255,255,0.04)",
             wallFill: "rgba(68, 75, 89, 0.96)",
             steelFill: "rgba(53, 61, 74, 0.97)",
             structureGlow: "rgba(255,255,255,0.16)"
@@ -829,10 +814,209 @@
               levelTrigger: { x: triggerX, y: triggerY, w: triggerWidth, h: triggerHeight }
             };
           }
+        },
+        {
+          key: "metro",
+          name: "Metro Station",
+          weather: "rain",
+          atmosphereDensity: 1.18,
+          lootProfile: {
+            baseChance: 0.29,
+            count: 1,
+            bonusBoosts: {
+              ammoPack: 8,
+              moduleRapid: 6,
+              freeze: 5
+            }
+          },
+          theme: {
+            backdropTop: "#071016",
+            backdropMid: "#030609",
+            backdropBottom: "#010203",
+            glowPrimary: "rgba(139,195,255,0.075)",
+            glowSecondary: "rgba(255,211,77,0.035)",
+            wallFill: "rgba(54, 60, 66, 0.96)",
+            steelFill: "rgba(36, 49, 58, 0.97)",
+            structureGlow: "rgba(139, 195, 255, 0.16)"
+          },
+          build: (game, theme) => {
+            const thickness = Math.max(20, Math.round(Math.min(game.width, game.height) * 0.03));
+            const roomLeft = Math.round(game.width * 0.61);
+            const roomRight = Math.round(game.width * 0.92);
+            const roomTop = Math.round(game.height * 0.11);
+            const roomBottom = Math.round(game.height * 0.37);
+            const roomHeight = Math.max(120, roomBottom - roomTop);
+            const doorHeight = Math.min(Math.max(82, Math.round(game.height * 0.17)), Math.max(72, roomHeight - thickness * 2 - 8));
+            const doorY = Math.round(roomTop + (roomHeight - doorHeight) * 0.5);
+            const triggerWidth = Math.min(Math.max(76, Math.round(game.width * 0.1)), Math.max(72, roomRight - roomLeft - thickness - 52));
+            const triggerHeight = Math.min(Math.max(74, Math.round(game.height * 0.12)), Math.max(72, doorHeight - 14));
+            const triggerX = Math.round(roomLeft + thickness + 30);
+            const triggerY = Math.round(doorY + (doorHeight - triggerHeight) * 0.5);
+            const leverWidth = Math.max(16, Math.round(thickness * 0.72));
+            const leverHeight = Math.max(34, Math.round(doorHeight * 0.4));
+            const leverX = Math.round(roomRight - thickness + (thickness - leverWidth) * 0.5);
+            const leverY = Math.round(roomTop + (roomHeight - leverHeight) * 0.5);
+
+            return {
+              barricades: [
+                { x: Math.round(game.width * 0.08), y: Math.round(game.height * 0.2), w: Math.max(190, Math.round(game.width * 0.34)), h: Math.max(22, Math.round(game.height * 0.028)), fill: theme.steelFill },
+                { x: Math.round(game.width * 0.08), y: Math.round(game.height * 0.48), w: Math.max(210, Math.round(game.width * 0.38)), h: Math.max(24, Math.round(game.height * 0.03)), fill: theme.wallFill },
+                { x: Math.round(game.width * 0.42), y: Math.round(game.height * 0.21), w: Math.max(22, Math.round(game.width * 0.026)), h: Math.max(160, Math.round(game.height * 0.27)), fill: theme.steelFill },
+                { x: Math.round(game.width * 0.18), y: Math.round(game.height * 0.72), w: Math.max(160, Math.round(game.width * 0.22)), h: Math.max(22, Math.round(game.height * 0.028)), fill: theme.steelFill },
+                { x: roomLeft, y: roomTop, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomLeft, y: roomBottom - thickness, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomRight - thickness, y: roomTop, w: thickness, h: roomBottom - roomTop, fill: theme.steelFill },
+                { x: roomLeft, y: roomTop + thickness, w: thickness, h: Math.max(0, doorY - (roomTop + thickness)), fill: theme.steelFill },
+                { x: roomLeft, y: doorY + doorHeight, w: thickness, h: Math.max(0, roomBottom - thickness - (doorY + doorHeight)), fill: theme.steelFill }
+              ],
+              door: { x: roomLeft, y: doorY, w: thickness, h: doorHeight, open: game.doorOpen },
+              lever: { x: leverX, y: leverY, w: leverWidth, h: leverHeight, wall: "right" },
+              generator: { x: Math.round(game.width * 0.18), y: Math.round(game.height * 0.64), w: Math.max(42, Math.round(game.width * 0.05)), h: Math.max(26, Math.round(Math.max(42, Math.round(game.width * 0.05)) * 0.62)) },
+              props: [
+                { type: "train", x: Math.round(game.width * 0.12), y: Math.round(game.height * 0.29), w: Math.max(150, Math.round(game.width * 0.22)), h: 58 },
+                { type: "pillar", x: Math.round(game.width * 0.5), y: Math.round(game.height * 0.25), w: 34, h: 118 },
+                { type: "pillar", x: Math.round(game.width * 0.32), y: Math.round(game.height * 0.62), w: 32, h: 112 }
+              ],
+              levelTrigger: { x: triggerX, y: triggerY, w: triggerWidth, h: triggerHeight }
+            };
+          }
+        },
+        {
+          key: "camp",
+          name: "Military Camp",
+          weather: "ash",
+          atmosphereDensity: 1.02,
+          lootProfile: {
+            baseChance: 0.31,
+            count: 1,
+            bonusBoosts: {
+              grenadePack: 8,
+              armorPlate: 7,
+              modulePierce: 5
+            }
+          },
+          theme: {
+            backdropTop: "#101008",
+            backdropMid: "#050703",
+            backdropBottom: "#010201",
+            glowPrimary: "rgba(255,211,77,0.06)",
+            glowSecondary: "rgba(103,240,167,0.035)",
+            wallFill: "rgba(75, 81, 54, 0.95)",
+            steelFill: "rgba(47, 61, 48, 0.96)",
+            structureGlow: "rgba(255, 211, 77, 0.16)"
+          },
+          build: (game, theme) => {
+            const thickness = Math.max(20, Math.round(Math.min(game.width, game.height) * 0.031));
+            const roomLeft = Math.round(game.width * 0.56);
+            const roomRight = Math.round(game.width * 0.9);
+            const roomTop = Math.round(game.height * 0.17);
+            const roomBottom = Math.round(game.height * 0.45);
+            const roomHeight = Math.max(120, roomBottom - roomTop);
+            const doorHeight = Math.min(Math.max(84, Math.round(game.height * 0.18)), Math.max(72, roomHeight - thickness * 2 - 8));
+            const doorY = Math.round(roomBottom - doorHeight - 12);
+            const triggerWidth = Math.min(Math.max(74, Math.round(game.width * 0.1)), Math.max(72, roomRight - roomLeft - thickness - 52));
+            const triggerHeight = Math.min(Math.max(72, Math.round(game.height * 0.13)), Math.max(72, doorHeight - 18));
+            const triggerX = Math.round(roomLeft + 30);
+            const triggerY = Math.round(roomTop + 22);
+            const leverWidth = Math.max(16, Math.round(thickness * 0.72));
+            const leverHeight = Math.max(34, Math.round(doorHeight * 0.4));
+            const leverX = Math.round(roomLeft - thickness + (thickness - leverWidth) * 0.5);
+            const leverY = Math.round(roomTop + (roomHeight - leverHeight) * 0.5);
+
+            return {
+              barricades: [
+                { x: Math.round(game.width * 0.1), y: Math.round(game.height * 0.18), w: Math.max(130, Math.round(game.width * 0.19)), h: Math.max(22, Math.round(game.height * 0.03)), fill: theme.wallFill },
+                { x: Math.round(game.width * 0.2), y: Math.round(game.height * 0.52), w: Math.max(24, Math.round(game.width * 0.03)), h: Math.max(150, Math.round(game.height * 0.24)), fill: theme.steelFill },
+                { x: Math.round(game.width * 0.42), y: Math.round(game.height * 0.67), w: Math.max(150, Math.round(game.width * 0.2)), h: Math.max(24, Math.round(game.height * 0.03)), fill: theme.wallFill },
+                { x: roomLeft, y: roomTop, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomLeft, y: roomBottom - thickness, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomLeft, y: roomTop, w: thickness, h: roomBottom - roomTop, fill: theme.steelFill },
+                { x: roomRight - thickness, y: roomTop, w: thickness, h: Math.max(0, doorY - roomTop), fill: theme.steelFill },
+                { x: roomRight - thickness, y: doorY + doorHeight, w: thickness, h: Math.max(0, roomBottom - thickness - (doorY + doorHeight)), fill: theme.steelFill }
+              ],
+              door: { x: roomRight - thickness, y: doorY, w: thickness, h: doorHeight, open: game.doorOpen },
+              lever: { x: leverX, y: leverY, w: leverWidth, h: leverHeight, wall: "left" },
+              generator: { x: Math.round(game.width * 0.24), y: Math.round(game.height * 0.67), w: Math.max(42, Math.round(game.width * 0.05)), h: Math.max(26, Math.round(Math.max(42, Math.round(game.width * 0.05)) * 0.62)) },
+              props: [
+                { type: "tent", x: Math.round(game.width * 0.13), y: Math.round(game.height * 0.27), w: 110, h: 74 },
+                { type: "floodlight", x: Math.round(game.width * 0.39), y: Math.round(game.height * 0.2), w: 34, h: 92 },
+                { type: "container", x: Math.round(game.width * 0.36), y: Math.round(game.height * 0.42), w: 118, h: 52 },
+                { type: "crate", x: Math.round(game.width * 0.5), y: Math.round(game.height * 0.55), w: 52, h: 52 }
+              ],
+              levelTrigger: { x: triggerX, y: triggerY, w: triggerWidth, h: triggerHeight }
+            };
+          }
+        },
+        {
+          key: "desert",
+          name: "Desert Outpost",
+          weather: "ash",
+          atmosphereDensity: 0.78,
+          lootProfile: {
+            baseChance: 0.25,
+            count: 1,
+            bonusBoosts: {
+              ammoPack: 7,
+              fullHeal: 5,
+              moduleOptic: 6
+            }
+          },
+          theme: {
+            backdropTop: "#161207",
+            backdropMid: "#080603",
+            backdropBottom: "#020201",
+            glowPrimary: "rgba(255,211,77,0.07)",
+            glowSecondary: "rgba(255,111,97,0.032)",
+            wallFill: "rgba(96, 78, 42, 0.95)",
+            steelFill: "rgba(78, 67, 48, 0.96)",
+            structureGlow: "rgba(255, 195, 92, 0.18)"
+          },
+          build: (game, theme) => {
+            const thickness = Math.max(20, Math.round(Math.min(game.width, game.height) * 0.032));
+            const roomLeft = Math.round(game.width * 0.6);
+            const roomRight = Math.round(game.width * 0.91);
+            const roomTop = Math.round(game.height * 0.15);
+            const roomBottom = Math.round(game.height * 0.42);
+            const roomHeight = Math.max(120, roomBottom - roomTop);
+            const doorHeight = Math.min(Math.max(82, Math.round(game.height * 0.17)), Math.max(72, roomHeight - thickness * 2 - 8));
+            const doorY = Math.round(roomTop + thickness + 10);
+            const triggerWidth = Math.min(Math.max(74, Math.round(game.width * 0.095)), Math.max(72, roomRight - roomLeft - thickness - 52));
+            const triggerHeight = Math.min(Math.max(72, Math.round(game.height * 0.13)), Math.max(72, doorHeight - 16));
+            const triggerX = Math.round(roomLeft + thickness + 28);
+            const triggerY = Math.round(roomBottom - triggerHeight - 24);
+            const leverWidth = Math.max(16, Math.round(thickness * 0.72));
+            const leverHeight = Math.max(34, Math.round(doorHeight * 0.4));
+            const leverX = Math.round(roomRight - thickness + (thickness - leverWidth) * 0.5);
+            const leverY = Math.round(roomTop + (roomHeight - leverHeight) * 0.5);
+
+            return {
+              barricades: [
+                { x: Math.round(game.width * 0.08), y: Math.round(game.height * 0.2), w: Math.max(160, Math.round(game.width * 0.22)), h: Math.max(24, Math.round(game.height * 0.032)), fill: theme.wallFill },
+                { x: Math.round(game.width * 0.31), y: Math.round(game.height * 0.38), w: Math.max(24, Math.round(game.width * 0.03)), h: Math.max(130, Math.round(game.height * 0.2)), fill: theme.steelFill },
+                { x: Math.round(game.width * 0.12), y: Math.round(game.height * 0.72), w: Math.max(180, Math.round(game.width * 0.25)), h: Math.max(24, Math.round(game.height * 0.03)), fill: theme.wallFill },
+                { x: Math.round(game.width * 0.42), y: Math.round(game.height * 0.62), w: Math.max(120, Math.round(game.width * 0.16)), h: Math.max(24, Math.round(game.height * 0.03)), fill: theme.steelFill },
+                { x: roomLeft, y: roomTop, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomLeft, y: roomBottom - thickness, w: roomRight - roomLeft, h: thickness, fill: theme.steelFill },
+                { x: roomRight - thickness, y: roomTop, w: thickness, h: roomBottom - roomTop, fill: theme.steelFill },
+                { x: roomLeft, y: roomTop + thickness, w: thickness, h: Math.max(0, doorY - (roomTop + thickness)), fill: theme.steelFill },
+                { x: roomLeft, y: doorY + doorHeight, w: thickness, h: Math.max(0, roomBottom - thickness - (doorY + doorHeight)), fill: theme.steelFill }
+              ],
+              door: { x: roomLeft, y: doorY, w: thickness, h: doorHeight, open: game.doorOpen },
+              lever: { x: leverX, y: leverY, w: leverWidth, h: leverHeight, wall: "right" },
+              generator: { x: Math.round(game.width * 0.2), y: Math.round(game.height * 0.66), w: Math.max(42, Math.round(game.width * 0.05)), h: Math.max(26, Math.round(Math.max(42, Math.round(game.width * 0.05)) * 0.62)) },
+              props: [
+                { type: "tent", x: Math.round(game.width * 0.14), y: Math.round(game.height * 0.29), w: 104, h: 68 },
+                { type: "floodlight", x: Math.round(game.width * 0.45), y: Math.round(game.height * 0.2), w: 32, h: 88 },
+                { type: "crate", x: Math.round(game.width * 0.25), y: Math.round(game.height * 0.55), w: 58, h: 58 },
+                { type: "container", x: Math.round(game.width * 0.4), y: Math.round(game.height * 0.47), w: 112, h: 50 }
+              ],
+              levelTrigger: { x: triggerX, y: triggerY, w: triggerWidth, h: triggerHeight }
+            };
+          }
         }
       ];
 
-      const order = ["city", "hospital", "warehouse", "forest", "laboratory"];
+      const order = ["city", "hospital", "metro", "warehouse", "camp", "desert", "forest", "laboratory"];
       return order
         .map((key) => locations.find((location) => location.key === key))
         .filter(Boolean);
@@ -864,13 +1048,76 @@
         return null;
       }
       const layout = location.build(this, location.theme);
+      const normalizedLayout = this.normalizeLeverToOppositeDoor(layout);
       return {
-        ...layout,
+        ...normalizedLayout,
+        ammoBox: this.createAmmoBox(),
         locationKey: location.key,
         locationName: location.name,
         weather: location.weather,
         theme: location.theme,
         lootProfile: location.lootProfile || null
+      };
+    }
+
+    normalizeLeverToOppositeDoor(layout) {
+      if (!layout?.door || !layout?.lever) {
+        return layout;
+      }
+
+      const door = layout.door;
+      const lever = layout.lever;
+      const doorCenterX = door.x + door.w * 0.5;
+      const doorCenterY = door.y + door.h * 0.5;
+      const horizontalRoomWalls = (layout.barricades || [])
+        .filter((rect) => rect.w > rect.h * 2 && rect.x <= doorCenterX && rect.x + rect.w >= doorCenterX);
+
+      const roomLeft = horizontalRoomWalls.length
+        ? Math.min(...horizontalRoomWalls.map((rect) => rect.x))
+        : Math.min(door.x, lever.x);
+      const roomRight = horizontalRoomWalls.length
+        ? Math.max(...horizontalRoomWalls.map((rect) => rect.x + rect.w))
+        : Math.max(door.x + door.w, lever.x + lever.w);
+      const roomTop = horizontalRoomWalls.length
+        ? Math.min(...horizontalRoomWalls.map((rect) => rect.y))
+        : Math.min(door.y, lever.y);
+      const roomBottom = horizontalRoomWalls.length
+        ? Math.max(...horizontalRoomWalls.map((rect) => rect.y + rect.h))
+        : Math.max(door.y + door.h, lever.y + lever.h);
+
+      const doorOnLeft = Math.abs(door.x - roomLeft) <= Math.abs((roomRight - door.w) - door.x);
+      const wallX = doorOnLeft ? roomRight - door.w : roomLeft;
+      const leverWidth = lever.w;
+      const leverHeight = lever.h;
+      const leverX = Math.round(wallX + (door.w - leverWidth) * 0.5);
+      const leverY = Math.round(GameUtils.clamp(
+        doorCenterY - leverHeight * 0.5,
+        roomTop + door.w,
+        roomBottom - door.w - leverHeight
+      ));
+
+      return {
+        ...layout,
+        lever: {
+          ...lever,
+          x: leverX,
+          y: leverY,
+          wall: doorOnLeft ? "right" : "left"
+        }
+      };
+    }
+
+    createAmmoBox() {
+      const width = Math.min(86, Math.max(62, Math.round(this.width * 0.075)));
+      const height = Math.min(58, Math.max(44, Math.round(width * 0.68)));
+      return {
+        x: Math.round(GameUtils.clamp(this.width * 0.08, 24, this.width - width - 24)),
+        y: Math.round(GameUtils.clamp(this.height * 0.5 - height * 0.5, 92, this.height - height - 92)),
+        w: width,
+        h: height,
+        cost: 45,
+        amount: 50,
+        label: "Ammo Box"
       };
     }
 
@@ -881,6 +1128,9 @@
       const rects = [...(this.worldLayout.barricades || [])];
       if (this.worldLayout.door && !this.worldLayout.door.open) {
         rects.push(this.worldLayout.door);
+      }
+      if (this.worldLayout.ammoBox) {
+        rects.push(this.worldLayout.ammoBox);
       }
       return rects;
     }
@@ -966,17 +1216,27 @@
       return GameUtils.distance(this.player.x, this.player.y, centerX, centerY);
     }
 
+    getAmmoBoxDistance() {
+      if (!this.worldLayout?.ammoBox) {
+        return Infinity;
+      }
+      const box = this.worldLayout.ammoBox;
+      const centerX = box.x + box.w * 0.5;
+      const centerY = box.y + box.h * 0.5;
+      return GameUtils.distance(this.player.x, this.player.y, centerX, centerY);
+    }
+
     createAtmosphereState() {
       const wave = this.waveManager?.wave || 1;
       const location = this.getCurrentLocation();
-      const kind = location?.weather || (wave % 6 === 0 ? "rain" : wave % 3 === 0 ? "fog" : "ash");
-      const fogDensity = location?.fogDensity || 1;
+      const kind = location?.weather || (wave % 6 === 0 ? "rain" : "ash");
+      const atmosphereDensity = location?.atmosphereDensity || 1;
       return {
         kind,
-        intensity: GameUtils.clamp((0.42 + wave * 0.025) * fogDensity, 0.38, 1),
+        intensity: GameUtils.clamp((0.42 + wave * 0.025) * atmosphereDensity, 0.38, 1),
         wind: 14 + wave * 1.4,
         flicker: Math.random() * Math.PI * 2,
-        fogDensity
+        atmosphereDensity
       };
     }
 
@@ -1015,6 +1275,43 @@
 
     canPullLever() {
       return Boolean(this.leverReady && this.doorOpen && this.getLeverDistance() < 96);
+    }
+
+    canUseAmmoBox() {
+      return Boolean(this.worldLayout?.ammoBox && this.getAmmoBoxDistance() < 104);
+    }
+
+    tryBuyAmmoFromBox() {
+      const box = this.worldLayout?.ammoBox;
+      if (!box || !this.canUseAmmoBox()) {
+        return false;
+      }
+
+      if (this.player.ammoReserve >= 100) {
+        this.ui.showNotification("Ammo reserve is full", "normal", 1500);
+        return true;
+      }
+
+      if (this.coins < box.cost) {
+        this.ui.showNotification(`Need ${box.cost} coins for ammo`, "danger", 1600);
+        return true;
+      }
+
+      const added = this.player.addAmmo(box.amount);
+      if (added <= 0) {
+        this.ui.showNotification("Ammo reserve is full", "normal", 1500);
+        return true;
+      }
+
+      this.coins -= box.cost;
+      this.floaters.add(`+${added} AMMO`, box.x + box.w * 0.5, box.y - 8, "#ffd34d", {
+        life: 0.85,
+        scale: 0.95,
+        velocityY: -24
+      });
+      this.ui.showNotification(`Ammo +${added}`, "accent", 1800);
+      this.audio.playSfx("pickup");
+      return true;
     }
 
     tryPullLever() {
@@ -1192,14 +1489,17 @@
             this.player.setWeaponByIndex(6);
             break;
           case "KeyQ":
-            this.player.switchWeapon(-1);
+            event.preventDefault();
+            if (!event.repeat) {
+              this.ui.toggleQuests();
+            }
             break;
           case "KeyE":
             this.player.switchWeapon(1);
             break;
           case "KeyF":
             event.preventDefault();
-            if (!this.tryPullLever()) {
+            if (!this.tryBuyAmmoFromBox() && !this.tryPullLever()) {
               this.tryOpenDoor();
             }
             break;
@@ -1360,7 +1660,6 @@
 
       ctx.save();
 
-      this.drawGroundFog(ctx);
       this.drawStructures(ctx);
       this.drawEntities(ctx);
       this.particles.render(ctx);
@@ -1393,7 +1692,7 @@
 
       ctx.save();
       ctx.globalAlpha = 0.18;
-      ctx.strokeStyle = theme?.fogSecondary || "rgba(129, 255, 188, 0.16)";
+      ctx.strokeStyle = theme?.glowPrimary || "rgba(129, 255, 188, 0.16)";
       ctx.lineWidth = 1;
       const spacing = 52;
       const offset = Math.sin(this.worldTime * 0.4) * 12;
@@ -1412,34 +1711,12 @@
       ctx.restore();
     }
 
-    drawGroundFog(ctx) {
-      const theme = this.worldLayout?.theme || this.locations[0]?.theme;
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const drifts = [
-        { x: this.width * 0.2, y: this.height * 0.8, r: 220, c: theme?.fogPrimary || "rgba(255,111,97,0.05)" },
-        { x: this.width * 0.74, y: this.height * 0.28, r: 260, c: theme?.fogSecondary || "rgba(103,240,167,0.05)" },
-        { x: this.width * 0.55, y: this.height * 0.62, r: 180, c: theme?.fogNeutral || "rgba(255,255,255,0.03)" }
-      ];
-      for (const drift of drifts) {
-        const pulse = 1 + Math.sin(this.worldTime * 0.7 + drift.x * 0.001) * 0.06;
-        const gradient = ctx.createRadialGradient(drift.x, drift.y, 10, drift.x, drift.y, drift.r * pulse);
-        gradient.addColorStop(0, drift.c);
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(drift.x, drift.y, drift.r * pulse, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
     drawWeather(ctx) {
       if (!this.atmosphere) {
         return;
       }
 
-      const { kind, intensity, wind } = this.atmosphere;
+      const { kind, intensity, wind, atmosphereDensity = 1 } = this.atmosphere;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
 
@@ -1457,25 +1734,8 @@
           ctx.lineTo(x - wind * 0.18, y + length);
           ctx.stroke();
         }
-      } else if (kind === "fog") {
-        const fogDensity = this.worldLayout?.fogDensity || 1;
-        const count = Math.round(12 * intensity * fogDensity);
-        for (let i = 0; i < count; i += 1) {
-          const seed = i * 142.7;
-          const x = ((seed * 11.4 + this.worldTime * wind * 12) % (this.width + 260)) - 130;
-          const y = ((seed * 17.8 + this.worldTime * wind * 6) % (this.height + 220)) - 110;
-          const radius = 52 + (i % 4) * 22;
-          const gradient = ctx.createRadialGradient(x, y, 10, x, y, radius);
-          gradient.addColorStop(0, `rgba(201, 233, 255, ${0.06 * intensity})`);
-          gradient.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(x, y, radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
       } else {
-        const fogDensity = this.worldLayout?.fogDensity || 1;
-        const count = Math.round(54 * intensity * fogDensity);
+        const count = Math.round(54 * intensity * atmosphereDensity);
         for (let i = 0; i < count; i += 1) {
           const seed = i * 61.9;
           const x = ((seed * 9.2 + this.worldTime * wind * 5) % (this.width + 140)) - 70;
@@ -1674,6 +1934,8 @@
         ctx.restore();
       }
 
+      this.drawAmmoBox(ctx);
+
       const door = this.worldLayout.door;
       if (door) {
         ctx.save();
@@ -1851,6 +2113,47 @@
       ctx.restore();
     }
 
+    drawAmmoBox(ctx) {
+      const box = this.worldLayout?.ammoBox;
+      if (!box) {
+        return;
+      }
+
+      const near = this.canUseAmmoBox();
+      const centerX = box.x + box.w * 0.5;
+      const centerY = box.y + box.h * 0.5;
+
+      ctx.save();
+      if (near) {
+        ctx.fillStyle = "rgba(255, 211, 77, 0.12)";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 76 + Math.sin(this.worldTime * 5) * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const gradient = ctx.createLinearGradient(box.x, box.y, box.x + box.w, box.y + box.h);
+      gradient.addColorStop(0, "rgba(110, 82, 42, 0.98)");
+      gradient.addColorStop(1, "rgba(38, 31, 20, 0.98)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(box.x, box.y, box.w, box.h);
+      ctx.strokeStyle = near ? "rgba(255, 211, 77, 0.95)" : "rgba(255, 211, 77, 0.34)";
+      ctx.lineWidth = near ? 3 : 2;
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+
+      ctx.fillStyle = "rgba(255, 211, 77, 0.22)";
+      ctx.fillRect(box.x + 8, box.y + 10, box.w - 16, 8);
+      ctx.fillStyle = "#ffd34d";
+      ctx.font = "800 16px Bahnschrift, Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("AMMO", centerX, centerY + 8);
+
+      ctx.fillStyle = "rgba(3, 8, 6, 0.72)";
+      ctx.fillRect(box.x + box.w * 0.44, box.y, box.w * 0.12, box.h);
+      ctx.fillRect(box.x, box.y + box.h * 0.44, box.w, box.h * 0.12);
+      ctx.restore();
+    }
+
     circleIntersectsRect(entity, rect) {
       const radius = entity.radius || 0;
       const nearestX = GameUtils.clamp(entity.x, rect.x, rect.x + rect.w);
@@ -1858,6 +2161,37 @@
       const dx = entity.x - nearestX;
       const dy = entity.y - nearestY;
       return dx * dx + dy * dy <= radius * radius;
+    }
+
+    segmentIntersectsRect(x1, y1, x2, y2, rect, padding = 0) {
+      const left = rect.x - padding;
+      const right = rect.x + rect.w + padding;
+      const top = rect.y - padding;
+      const bottom = rect.y + rect.h + padding;
+
+      if (
+        (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) ||
+        (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom)
+      ) {
+        return true;
+      }
+
+      const intersectsLine = (x3, y3, x4, y4) => {
+        const denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        if (denominator === 0) {
+          return false;
+        }
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
+        const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
+        return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+      };
+
+      return (
+        intersectsLine(left, top, right, top) ||
+        intersectsLine(right, top, right, bottom) ||
+        intersectsLine(right, bottom, left, bottom) ||
+        intersectsLine(left, bottom, left, top)
+      );
     }
 
     checkLevelTrigger() {
@@ -2040,44 +2374,12 @@
         ctx.restore();
       }
 
-      ctx.save();
-      const fogTheme = this.worldLayout?.theme || {};
-      const fogDensity = this.worldLayout?.fogDensity || 1;
-      const worldFog = ctx.createLinearGradient(0, 0, 0, this.height);
-      worldFog.addColorStop(0, fogTheme.backdropTop || "rgba(6, 12, 10, 0.78)");
-      worldFog.addColorStop(0.45, fogTheme.backdropMid || "rgba(2, 4, 5, 0.82)");
-      worldFog.addColorStop(1, fogTheme.backdropBottom || "rgba(1, 1, 1, 0.9)");
-      ctx.globalAlpha = GameUtils.clamp(0.82 + fogDensity * 0.08, 0.82, 0.98);
-      ctx.fillStyle = worldFog;
-      ctx.fillRect(0, 0, this.width, this.height);
-
-      ctx.globalCompositeOperation = "destination-out";
-      const visibilityRadius = this.nightVisionActive ? 260 : 180;
-      const visionHole = ctx.createRadialGradient(this.player.x, this.player.y, 18, this.player.x, this.player.y, visibilityRadius);
-      visionHole.addColorStop(0, "rgba(0,0,0,1)");
-      visionHole.addColorStop(0.6, "rgba(0,0,0,0.96)");
-      visionHole.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = visionHole;
-      ctx.beginPath();
-      ctx.arc(this.player.x, this.player.y, visibilityRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.globalCompositeOperation = "lighter";
-      const playerGlow = ctx.createRadialGradient(this.player.x, this.player.y, 10, this.player.x, this.player.y, this.nightVisionActive ? 220 : 140);
-      playerGlow.addColorStop(0, this.nightVisionActive ? "rgba(183,255,209,0.24)" : "rgba(255,255,255,0.18)");
-      playerGlow.addColorStop(0.45, this.nightVisionActive ? "rgba(103,240,167,0.12)" : "rgba(255,255,255,0.08)");
-      playerGlow.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = playerGlow;
-      ctx.beginPath();
-      ctx.arc(this.player.x, this.player.y, this.nightVisionActive ? 220 : 140, 0, Math.PI * 2);
-      ctx.fill();
-
       if (this.nightVisionActive) {
+        ctx.save();
         ctx.fillStyle = "rgba(103, 240, 167, 0.05)";
         ctx.fillRect(0, 0, this.width, this.height);
+        ctx.restore();
       }
-
-      ctx.restore();
 
       this.drawWeather(ctx);
 
@@ -2145,6 +2447,18 @@
         ctx.textBaseline = "bottom";
         ctx.fillText("Press F to open the security door", this.width * 0.5, this.height - 18);
         ctx.restore();
+      } else if (this.canUseAmmoBox()) {
+        const box = this.worldLayout.ammoBox;
+        ctx.save();
+        ctx.fillStyle = this.player.ammoReserve >= 100 ? "rgba(255, 255, 255, 0.72)" : "rgba(255, 211, 77, 0.95)";
+        ctx.font = "700 17px Bahnschrift, Trebuchet MS, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        const label = this.player.ammoReserve >= 100
+          ? "Ammo reserve full"
+          : `Press F to buy +${box.amount} ammo - ${box.cost} coins`;
+        ctx.fillText(label, this.width * 0.5, this.height - 18);
+        ctx.restore();
       } else if (!this.doorOpen && this.player.keycards > 0 && this.getDoorDistance() < 150) {
         ctx.save();
         ctx.fillStyle = "rgba(103, 240, 167, 0.9)";
@@ -2186,7 +2500,9 @@
         color: data.color || "#b46cff",
         sourceType: data.sourceType || "shooter",
         life: data.life || 3,
-        glow: data.glow || "rgba(180, 108, 255, 0.7)"
+        glow: data.glow || "rgba(180, 108, 255, 0.7)",
+        splashRadius: data.splashRadius || 0,
+        splashDamage: data.splashDamage || 0
       });
     }
 
@@ -2212,6 +2528,8 @@
       for (let index = this.bullets.length - 1; index >= 0; index -= 1) {
         const bullet = this.bullets[index];
         bullet.life -= dt;
+        const previousX = bullet.x;
+        const previousY = bullet.y;
         bullet.x += bullet.vx * dt;
         bullet.y += bullet.vy * dt;
 
@@ -2222,6 +2540,16 @@
           bullet.y < -30 ||
           bullet.y > this.height + 30
         ) {
+          this.bullets.splice(index, 1);
+          continue;
+        }
+
+        const blocked = this.getBlockingRects().some((rect) => (
+          this.circleIntersectsRect(bullet, rect) ||
+          this.segmentIntersectsRect(previousX, previousY, bullet.x, bullet.y, rect, bullet.radius)
+        ));
+        if (blocked) {
+          this.particles.sparks(bullet.x, bullet.y, 4, bullet.color);
           this.bullets.splice(index, 1);
           continue;
         }
@@ -2384,9 +2712,10 @@
 
     spawnZombie(type, spawn, options = {}) {
       const zombie = new Zombie(this, type, spawn.x, spawn.y, this.waveManager.wave, options);
+      const isBoss = zombie.isBoss?.();
       this.zombies.push(zombie);
-      this.particles.explosion(zombie.x, zombie.y, zombie.type === "boss" ? 20 : zombie.type === "brute" ? 12 : 8, zombie.base.color);
-      this.particles.sparks(zombie.x, zombie.y, zombie.type === "boss" ? 12 : 6, zombie.base.eye);
+      this.particles.explosion(zombie.x, zombie.y, isBoss ? 20 : zombie.type === "brute" ? 12 : 8, zombie.base.color);
+      this.particles.sparks(zombie.x, zombie.y, isBoss ? 12 : 6, zombie.base.eye);
       return zombie;
     }
 
@@ -2498,12 +2827,13 @@
     onZombieKilled(zombie, meta = {}) {
       this.stats.kills += 1;
       this.missions.onZombieKilled();
+      const isBoss = zombie.isBoss?.();
       const baseScore = zombie.scoreValue + this.waveManager.wave * 9;
       const headshotBonus = meta.headshot ? 35 : 0;
-      const killScore = zombie.type === "boss" ? baseScore + 350 : baseScore + headshotBonus;
+      const killScore = isBoss ? baseScore + 350 : baseScore + headshotBonus;
       this.stats.score += killScore;
 
-      const coins = zombie.coinValue + Math.round(this.waveManager.wave * 1.8) + (zombie.type === "boss" ? 90 : 0);
+      const coins = zombie.coinValue + Math.round(this.waveManager.wave * 1.8) + (isBoss ? 90 : 0);
       const awardedCoins = this.addCoins(coins);
 
       this.floaters.add(`+${killScore}`, zombie.x, zombie.y - 34, "#67f0a7", {
@@ -2527,8 +2857,8 @@
         this.pickups.push(pickup);
       }
 
-      if (zombie.type === "boss") {
-        this.ui.showNotification("Boss eliminated", "danger", 2600);
+      if (isBoss) {
+        this.ui.showNotification(`${zombie.base.name || "Boss"} eliminated`, "danger", 2600);
         this.stats.score += 500;
         this.addCoins(120);
       }
