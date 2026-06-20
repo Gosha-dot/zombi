@@ -44,17 +44,23 @@
         startGameBtn: byId("startGameBtn"),
         openLeaderboardBtn: byId("openLeaderboardBtn"),
         openSettingsBtn: byId("openSettingsBtn"),
+        modeButtons: byId("modeButtons"),
+        modeDescription: byId("modeDescription"),
         closeLeaderboardBtn: byId("closeLeaderboardBtn"),
         closeSettingsBtn: byId("closeSettingsBtn"),
         leaderboardPanel: byId("leaderboardPanel"),
         leaderboardBody: byId("leaderboardBody"),
         settingsPanel: byId("settingsPanel"),
         playerNameInput: byId("playerNameInput"),
+        gameModeInput: byId("gameModeInput"),
         soundVolumeInput: byId("soundVolumeInput"),
         musicVolumeInput: byId("musicVolumeInput"),
         screenShakeInput: byId("screenShakeInput"),
         bloodEffectsInput: byId("bloodEffectsInput"),
         bestScoreText: byId("bestScoreText"),
+        tutorialPanel: byId("tutorialPanel"),
+        startFirstWaveBtn: byId("startFirstWaveBtn"),
+        tutorialModeText: byId("tutorialModeText"),
         shopPanel: byId("shopPanel"),
         shopGrid: byId("shopGrid"),
         startNextWaveBtn: byId("startNextWaveBtn"),
@@ -81,6 +87,7 @@
 
     bind() {
       this.els.startGameBtn.addEventListener("click", () => this.game.startNewRun());
+      this.els.startFirstWaveBtn.addEventListener("click", () => this.game.startFirstWave());
       this.els.openLeaderboardBtn.addEventListener("click", () => this.showLeaderboard());
       this.els.openSettingsBtn.addEventListener("click", () => this.showSettings());
       this.els.closeLeaderboardBtn.addEventListener("click", () => this.showMenu());
@@ -94,6 +101,7 @@
 
       const settingsInputs = [
         this.els.playerNameInput,
+        this.els.gameModeInput,
         this.els.soundVolumeInput,
         this.els.musicVolumeInput,
         this.els.screenShakeInput,
@@ -103,6 +111,10 @@
       settingsInputs.forEach((input) => {
         input.addEventListener("input", () => this.updateSettings());
         input.addEventListener("change", () => this.updateSettings());
+      });
+
+      this.els.modeButtons.querySelectorAll("[data-game-mode]").forEach((button) => {
+        button.addEventListener("click", () => this.setGameMode(button.dataset.gameMode, true));
       });
 
       this.els.scoreNameInput.addEventListener("input", () => {
@@ -216,6 +228,7 @@
     syncSettingsFromState() {
       const settings = this.game.settings;
       this.els.playerNameInput.value = settings.playerName || "Survivor";
+      this.els.gameModeInput.value = this.game.getModeKey();
       this.els.soundVolumeInput.value = Math.round((settings.soundVolume ?? 0.7) * 100);
       this.els.musicVolumeInput.value = Math.round((settings.musicVolume ?? 0.35) * 100);
       this.els.screenShakeInput.checked = Boolean(settings.screenShake ?? true);
@@ -224,18 +237,50 @@
       this.minimapCtx = this.els.miniMapCanvas ? this.els.miniMapCanvas.getContext("2d") : null;
       this.mapCtx = this.els.worldMapCanvas ? this.els.worldMapCanvas.getContext("2d") : null;
       this.mapOpen = false;
+<<<<<<< HEAD
       this.questsOpen = false;
+=======
+      this.renderModePicker();
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     updateSettings() {
       const settings = this.game.settings;
       settings.playerName = this.els.playerNameInput.value.trim() || "Survivor";
+      settings.gameMode = this.els.gameModeInput.value in global.GAME_MODE_DEFS ? this.els.gameModeInput.value : "normal";
       settings.soundVolume = Number(this.els.soundVolumeInput.value) / 100;
       settings.musicVolume = Number(this.els.musicVolumeInput.value) / 100;
       settings.screenShake = Boolean(this.els.screenShakeInput.checked);
       settings.bloodEffects = Boolean(this.els.bloodEffectsInput.checked);
       this.game.saveSettings();
       this.game.audio.applySettings(settings);
+      this.renderModePicker();
+    }
+
+    setGameMode(modeKey, notify = false) {
+      if (!this.game.setGameMode(modeKey)) {
+        return false;
+      }
+      this.els.gameModeInput.value = this.game.getModeKey();
+      this.renderModePicker();
+      if (notify) {
+        this.game.audio.playSfx("ui");
+      }
+      return true;
+    }
+
+    renderModePicker() {
+      const modes = global.GAME_MODE_DEFS || {};
+      const mode = this.game.getModeSettings();
+      this.els.modeButtons.querySelectorAll("[data-game-mode]").forEach((button) => {
+        button.classList.toggle("mode-chip--active", button.dataset.gameMode === mode.key);
+      });
+      if (this.els.modeDescription) {
+        this.els.modeDescription.textContent = mode.description;
+      }
+      if (this.els.tutorialModeText) {
+        this.els.tutorialModeText.textContent = mode.tutorial;
+      }
     }
 
     setMode(mode) {
@@ -255,7 +300,11 @@
       hideModal(this.els.settingsPanel);
       hideModal(this.els.gameOverPanel);
       hideModal(this.els.mapPanel);
+<<<<<<< HEAD
       hideModal(this.els.questsPanel);
+=======
+      hideModal(this.els.tutorialPanel);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       if (mode !== "intermission") {
         hideModal(this.els.shopPanel);
@@ -268,6 +317,12 @@
 
       if (mode === "intermission") {
         this.openShop();
+      }
+
+      if (mode === "tutorial") {
+        this.renderModePicker();
+        this.els.tutorialPanel.classList.remove("panel--hidden");
+        this.els.tutorialPanel.setAttribute("aria-hidden", "false");
       }
 
       if (mode === "menu") {
@@ -393,8 +448,8 @@
                   ? item.previewText
                   : isModule
                     ? item.previewText
-                  : item.previewText;
-              const costLabel = item.maxed ? (isResource ? "FULL" : "MAX") : `${item.cost} coins`;
+                    : item.previewText;
+              const costLabel = item.lockedByMode ? "LOCKED" : item.maxed ? (isResource ? "FULL" : "MAX") : `${item.cost} coins`;
               const buttonDisabled = !item.affordable || item.maxed;
               return `
               <article class="shop-card ${item.maxed ? "shop-card--maxed" : ""} ${isWeaponUnlock ? "shop-card--weapon" : ""} ${isResource ? "shop-card--supply" : ""} ${isModule ? "shop-card--module" : ""}">
@@ -412,7 +467,7 @@
                 <div class="shop-card__footer">
                   <span class="shop-card__cost">${costLabel}</span>
                   <button class="btn ${item.affordable && !item.maxed ? "btn--primary" : ""}" data-upgrade-id="${item.id}" ${buttonDisabled ? "disabled" : ""}>
-                    ${item.maxed ? (isResource ? "Full" : "Owned") : actionLabel}
+                    ${item.lockedByMode ? "Locked" : item.maxed ? (isResource ? "Full" : "Owned") : actionLabel}
                   </button>
                 </div>
               </article>
@@ -448,6 +503,7 @@
         .map((entry) => `
           <tr class="${highlightId && entry.id === highlightId ? "record" : ""}">
             <td>${entry.playerName}</td>
+            <td>${entry.modeName || "Normal"}</td>
             <td>${entry.score.toLocaleString()}</td>
             <td>${entry.waves}</td>
             <td>${entry.kills}</td>
@@ -455,7 +511,7 @@
           </tr>
         `)
         .join("")
-        || `<tr><td colspan="5">No records yet. Be the first survivor.</td></tr>`;
+        || `<tr><td colspan="6">No records yet. Be the first survivor.</td></tr>`;
 
       const best = this.game.leaderboard.getBest();
       this.els.bestScoreText.textContent = best ? best.score.toLocaleString() : "0";
@@ -598,7 +654,11 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMini);
+<<<<<<< HEAD
       this.drawAmmoBoxMarker(ctx, toMini, 3.4);
+=======
+      this.drawMapTraps(ctx, toMini, 0.62);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       for (const pickup of this.game.pickups) {
         const point = toMini(pickup.x, pickup.y);
@@ -702,7 +762,11 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMap);
+<<<<<<< HEAD
       this.drawAmmoBoxMarker(ctx, toMap, 6);
+=======
+      this.drawMapTraps(ctx, toMap, 1);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       for (const pickup of this.game.pickups) {
         const point = toMap(pickup.x, pickup.y);
@@ -819,6 +883,7 @@
       ctx.restore();
     }
 
+<<<<<<< HEAD
     drawAmmoBoxMarker(ctx, toPoint, size) {
       const box = this.game.worldLayout?.ammoBox;
       if (!box) {
@@ -840,6 +905,37 @@
       ctx.textBaseline = "middle";
       ctx.fillText("A", point.x, point.y + 0.5);
       ctx.restore();
+=======
+    drawMapTraps(ctx, toPoint, scale = 1) {
+      for (const trap of this.game.traps || []) {
+        ctx.save();
+        if (trap.type === "wire") {
+          const start = toPoint(trap.x, trap.y);
+          const end = toPoint(trap.x + trap.w, trap.y + trap.h);
+          ctx.fillStyle = "rgba(216, 251, 255, 0.24)";
+          ctx.fillRect(start.x, start.y, Math.max(1, end.x - start.x), Math.max(1, end.y - start.y));
+          ctx.strokeStyle = "rgba(216, 251, 255, 0.76)";
+          ctx.strokeRect(start.x, start.y, Math.max(1, end.x - start.x), Math.max(1, end.y - start.y));
+        } else {
+          const point = toPoint(trap.x, trap.y);
+          const radius = trap.type === "barrel" ? 4.2 * scale : trap.type === "turret" ? 4.8 * scale : 4.5 * scale;
+          ctx.fillStyle = trap.spent
+            ? "rgba(255,255,255,0.24)"
+            : trap.type === "barrel"
+              ? "#ff9f5a"
+              : trap.type === "turret"
+                ? "#8dc3ff"
+                : "#98f0ff";
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.42)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     showNotification(text, type = "normal", duration = 3000) {
@@ -863,6 +959,8 @@
     saveScore() {
       const result = this.game.leaderboard.saveScore({
         playerName: this.els.scoreNameInput.value.trim() || this.game.settings.playerName || "Survivor",
+        modeKey: this.game.getModeKey(),
+        modeName: this.game.getModeSettings().name,
         score: this.game.stats.score,
         waves: this.game.waveManager.wavesCleared,
         kills: this.game.stats.kills,

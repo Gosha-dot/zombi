@@ -117,7 +117,7 @@
       this.completedCount += 1;
 
       const awardedCoins = this.game.addCoins(mission.rewardCoins);
-      this.game.stats.score += mission.rewardScore;
+      this.game.stats.score += Math.round(mission.rewardScore * (this.game.getModeSettings?.().scoreMult || 1));
       this.game.floaters.add("MISSION", this.game.player.x, this.game.player.y - 46, "#67f0a7", {
         life: 0.95,
         scale: 1.05,

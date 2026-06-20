@@ -51,6 +51,8 @@
       const savedEntry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         playerName: entry.playerName || "Survivor",
+        modeKey: entry.modeKey || "normal",
+        modeName: entry.modeName || "Normal",
         score: Math.round(entry.score || 0),
         waves: Math.round(entry.waves || 0),
         kills: Math.round(entry.kills || 0),

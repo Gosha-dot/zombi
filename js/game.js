@@ -27,6 +27,107 @@
     }
   };
 
+  const GAME_MODE_DEFS = {
+    easy: {
+      key: "easy",
+      name: "Easy",
+      description: "Slower enemies, softer damage, and longer breaks between waves.",
+      tutorial: "Easy mode gives you lighter enemy pressure and more time to learn the map.",
+      enemyHpMult: 0.82,
+      enemyDamageMult: 0.72,
+      enemySpeedMult: 0.92,
+      spawnCountMult: 0.82,
+      spawnIntervalMult: 1.18,
+      scoreMult: 0.85,
+      coinMult: 1,
+      intermissionDelay: 10,
+      fogMult: 0.88,
+      startCoins: 80
+    },
+    normal: {
+      key: "normal",
+      name: "Normal",
+      description: "Balanced outbreak conditions.",
+      tutorial: "Normal mode keeps enemies, rewards, and breaks balanced.",
+      enemyHpMult: 1,
+      enemyDamageMult: 1,
+      enemySpeedMult: 1,
+      spawnCountMult: 1,
+      spawnIntervalMult: 1,
+      scoreMult: 1,
+      coinMult: 1,
+      intermissionDelay: 8,
+      fogMult: 1,
+      startCoins: 0
+    },
+    hardcore: {
+      key: "hardcore",
+      name: "Hardcore",
+      description: "Faster, tougher enemies with shorter shop windows and higher score rewards.",
+      tutorial: "Hardcore mode pushes enemy damage, speed, and density for higher score rewards.",
+      enemyHpMult: 1.25,
+      enemyDamageMult: 1.35,
+      enemySpeedMult: 1.08,
+      spawnCountMult: 1.22,
+      spawnIntervalMult: 0.86,
+      scoreMult: 1.35,
+      coinMult: 1.15,
+      intermissionDelay: 6,
+      fogMult: 1.08,
+      startCoins: 0
+    },
+    oneHp: {
+      key: "oneHp",
+      name: "One HP",
+      description: "One hit can end the run. Rewards are doubled.",
+      tutorial: "One HP mode locks your health at 1, so movement and traps matter more than armor.",
+      enemyHpMult: 0.9,
+      enemyDamageMult: 1,
+      enemySpeedMult: 1,
+      spawnCountMult: 0.92,
+      spawnIntervalMult: 1,
+      scoreMult: 2,
+      coinMult: 1.35,
+      intermissionDelay: 8,
+      fogMult: 1,
+      oneHp: true,
+      startCoins: 120
+    },
+    bossRush: {
+      key: "bossRush",
+      name: "Boss Rush",
+      description: "Every wave opens with a boss and a smaller escort.",
+      tutorial: "Boss Rush sends a boss every wave, so burst damage and trap timing are critical.",
+      enemyHpMult: 1.08,
+      enemyDamageMult: 1.18,
+      enemySpeedMult: 1,
+      spawnCountMult: 0.7,
+      spawnIntervalMult: 0.92,
+      scoreMult: 1.55,
+      coinMult: 1.25,
+      intermissionDelay: 8,
+      fogMult: 1,
+      bossEveryWave: true,
+      startCoins: 180
+    },
+    endlessNight: {
+      key: "endlessNight",
+      name: "Endless Night",
+      description: "Darker arenas, dense waves, and short recovery windows.",
+      tutorial: "Endless Night deepens the fog, shortens breaks, and keeps the horde dense.",
+      enemyHpMult: 1.08,
+      enemyDamageMult: 1.12,
+      enemySpeedMult: 1.04,
+      spawnCountMult: 1.28,
+      spawnIntervalMult: 0.78,
+      scoreMult: 1.4,
+      coinMult: 1.12,
+      intermissionDelay: 4,
+      fogMult: 1.38,
+      startCoins: 60
+    }
+  };
+
   class AudioManager {
     constructor(game) {
       this.game = game;
@@ -426,6 +527,7 @@
       this.enemyBullets = [];
       this.grenades = [];
       this.pickups = [];
+      this.traps = [];
       this.width = 1;
       this.height = 1;
       this.dpr = 1;
@@ -1029,6 +1131,24 @@
       return this.locations[this.locationIndex % this.locations.length];
     }
 
+    getModeKey() {
+      return this.settings.gameMode in GAME_MODE_DEFS ? this.settings.gameMode : "normal";
+    }
+
+    getModeSettings() {
+      return GAME_MODE_DEFS[this.getModeKey()] || GAME_MODE_DEFS.normal;
+    }
+
+    setGameMode(modeKey) {
+      if (!(modeKey in GAME_MODE_DEFS)) {
+        return false;
+      }
+
+      this.settings.gameMode = modeKey;
+      this.saveSettings();
+      return true;
+    }
+
     advanceLocation() {
       if (!this.locations.length) {
         this.pendingLocationName = null;
@@ -1060,6 +1180,7 @@
       };
     }
 
+<<<<<<< HEAD
     normalizeLeverToOppositeDoor(layout) {
       if (!layout?.door || !layout?.lever) {
         return layout;
@@ -1119,6 +1240,105 @@
         amount: 50,
         label: "Ammo Box"
       };
+=======
+    createTrapsForLocation(previous = []) {
+      const locationKey = this.getCurrentLocation()?.key || "city";
+      const priorById = new Map((previous || []).map((trap) => [trap.id, trap]));
+      const shortSide = Math.min(this.width, this.height);
+      const barrelRadius = Math.max(15, Math.round(shortSide * 0.022));
+      const wireHeight = Math.max(18, Math.round(shortSide * 0.025));
+      const wireWidth = Math.max(130, Math.round(this.width * 0.18));
+      const traps = [];
+      const addTrap = (trap) => {
+        const previousTrap = priorById.get(trap.id);
+        traps.push({
+          cooldown: 0,
+          flash: 0,
+          pulse: Math.random() * Math.PI * 2,
+          playerCooldown: 0,
+          ...trap,
+          hp: previousTrap?.hp ?? trap.hp,
+          spent: previousTrap?.spent ?? false,
+          cooldown: previousTrap?.cooldown ?? trap.cooldown ?? 0,
+          flash: previousTrap?.flash ?? 0
+        });
+      };
+
+      const locationSets = {
+        city: [
+          { id: "barrel-a", type: "barrel", x: this.width * 0.43, y: this.height * 0.44 },
+          { id: "wire-a", type: "wire", x: this.width * 0.44, y: this.height * 0.68, w: wireWidth, h: wireHeight },
+          { id: "turret-a", type: "turret", x: this.width * 0.73, y: this.height * 0.66 }
+        ],
+        hospital: [
+          { id: "barrel-a", type: "barrel", x: this.width * 0.48, y: this.height * 0.58 },
+          { id: "wire-a", type: "wire", x: this.width * 0.38, y: this.height * 0.42, w: wireWidth * 0.95, h: wireHeight },
+          { id: "turret-a", type: "turret", x: this.width * 0.72, y: this.height * 0.61 }
+        ],
+        warehouse: [
+          { id: "barrel-a", type: "barrel", x: this.width * 0.43, y: this.height * 0.44 },
+          { id: "barrel-b", type: "barrel", x: this.width * 0.63, y: this.height * 0.58 },
+          { id: "wire-a", type: "wire", x: this.width * 0.47, y: this.height * 0.64, w: wireWidth * 1.1, h: wireHeight }
+        ],
+        forest: [
+          { id: "barrel-a", type: "barrel", x: this.width * 0.48, y: this.height * 0.4 },
+          { id: "wire-a", type: "wire", x: this.width * 0.42, y: this.height * 0.63, w: wireWidth, h: wireHeight },
+          { id: "turret-a", type: "turret", x: this.width * 0.7, y: this.height * 0.68 }
+        ],
+        laboratory: [
+          { id: "barrel-a", type: "barrel", x: this.width * 0.46, y: this.height * 0.48 },
+          { id: "wire-a", type: "wire", x: this.width * 0.36, y: this.height * 0.68, w: wireWidth * 1.05, h: wireHeight },
+          { id: "turret-a", type: "turret", x: this.width * 0.7, y: this.height * 0.62 }
+        ]
+      };
+
+      for (const trap of locationSets[locationKey] || locationSets.city) {
+        if (trap.type === "barrel") {
+          addTrap({
+            ...trap,
+            id: `${locationKey}-${trap.id}`,
+            radius: barrelRadius,
+            hp: 34,
+            damage: 115,
+            blastRadius: Math.max(108, Math.round(shortSide * 0.16))
+          });
+        } else if (trap.type === "wire") {
+          addTrap({
+            ...trap,
+            id: `${locationKey}-${trap.id}`,
+            damage: 10,
+            slow: 0.46
+          });
+        } else if (trap.type === "turret") {
+          addTrap({
+            ...trap,
+            id: `${locationKey}-${trap.id}`,
+            radius: Math.max(17, Math.round(shortSide * 0.023)),
+            range: Math.max(260, Math.round(shortSide * 0.42)),
+            damage: 18,
+            cooldown: 0.15,
+            fireRate: 0.42
+          });
+        }
+      }
+
+      const generator = this.worldLayout?.generator;
+      if (generator) {
+        addTrap({
+          id: `${locationKey}-generator`,
+          type: "tesla",
+          x: generator.x + generator.w * 0.5,
+          y: generator.y + generator.h * 0.5,
+          radius: Math.max(20, Math.round(shortSide * 0.028)),
+          range: Math.max(132, Math.round(shortSide * 0.18)),
+          damage: 24,
+          cooldown: 0.7,
+          fireRate: 2.3
+        });
+      }
+
+      return traps;
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     getBlockingRects() {
@@ -1229,8 +1449,14 @@
     createAtmosphereState() {
       const wave = this.waveManager?.wave || 1;
       const location = this.getCurrentLocation();
+<<<<<<< HEAD
       const kind = location?.weather || (wave % 6 === 0 ? "rain" : "ash");
       const atmosphereDensity = location?.atmosphereDensity || 1;
+=======
+      const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
+      const kind = location?.weather || (wave % 6 === 0 ? "rain" : wave % 3 === 0 ? "fog" : "ash");
+      const fogDensity = (location?.fogDensity || 1) * (mode.fogMult || 1);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
       return {
         kind,
         intensity: GameUtils.clamp((0.42 + wave * 0.025) * atmosphereDensity, 0.38, 1),
@@ -1264,6 +1490,7 @@
       this.player.keycards = 0;
       this.atmosphere = this.createAtmosphereState();
       this.worldLayout = this.createWorldLayout();
+      this.traps = this.createTrapsForLocation();
       if (spawnPlayer) {
         this.spawnPlayerAtCenter();
       }
@@ -1400,6 +1627,7 @@
     loadSettings() {
       const defaults = {
         playerName: "Survivor",
+        gameMode: "normal",
         soundVolume: 0.7,
         musicVolume: 0.35,
         screenShake: true,
@@ -1415,6 +1643,7 @@
         return {
           ...defaults,
           ...parsed,
+          gameMode: parsed.gameMode in GAME_MODE_DEFS ? parsed.gameMode : defaults.gameMode,
           soundVolume: GameUtils.clamp(Number(parsed.soundVolume ?? defaults.soundVolume), 0, 1),
           musicVolume: GameUtils.clamp(Number(parsed.musicVolume ?? defaults.musicVolume), 0, 1)
         };
@@ -1447,6 +1676,12 @@
         if (this.state === "menu" && (event.code === "Enter" || event.code === "Space")) {
           event.preventDefault();
           this.startNewRun();
+          return;
+        }
+
+        if (this.state === "tutorial" && (event.code === "Enter" || event.code === "Space")) {
+          event.preventDefault();
+          this.startFirstWave();
           return;
         }
 
@@ -1574,6 +1809,7 @@
       }
       if (this.worldLayout) {
         this.worldLayout = this.createWorldLayout();
+        this.traps = this.createTrapsForLocation(this.traps);
       }
     }
 
@@ -1603,6 +1839,7 @@
         this.updateBullets(dt);
         this.updateEnemyBullets(dt);
         this.updateGrenades(dt);
+        this.updateTraps(dt);
         this.updateZombies(dt);
         this.updatePickups(dt);
         this.missions.update(dt);
@@ -2067,6 +2304,8 @@
         ctx.restore();
       }
 
+      this.drawTraps(ctx);
+
       const trigger = this.worldLayout.levelTrigger;
       if (trigger) {
         ctx.save();
@@ -2202,6 +2441,314 @@
       if (this.doorOpen && this.circleIntersectsRect(this.player, this.worldLayout.levelTrigger)) {
         this.completeLevelAdvance();
       }
+    }
+
+    updateTraps(dt) {
+      if (!this.traps?.length) {
+        return;
+      }
+
+      for (const trap of this.traps) {
+        trap.cooldown = Math.max(0, (trap.cooldown || 0) - dt);
+        trap.flash = Math.max(0, (trap.flash || 0) - dt);
+        trap.playerCooldown = Math.max(0, (trap.playerCooldown || 0) - dt);
+        trap.pulse = (trap.pulse || 0) + dt * 3;
+        if (trap.arcs?.length) {
+          trap.arcs = trap.arcs
+            .map((arc) => ({ ...arc, life: arc.life - dt }))
+            .filter((arc) => arc.life > 0);
+        }
+
+        if (trap.spent) {
+          continue;
+        }
+
+        if (trap.type === "wire") {
+          this.applyWireTrap(trap, dt);
+        } else if (trap.type === "tesla" && trap.cooldown <= 0) {
+          this.triggerTeslaTrap(trap);
+        } else if (trap.type === "turret" && trap.cooldown <= 0) {
+          this.fireTurretTrap(trap);
+        }
+      }
+    }
+
+    applyWireTrap(trap, dt) {
+      for (const zombie of this.zombies) {
+        if (!zombie.alive || !this.circleIntersectsRect(zombie, trap)) {
+          continue;
+        }
+
+        zombie.trapSlowFactor = Math.min(zombie.trapSlowFactor || 1, trap.slow || 0.5);
+        zombie.wireDamageCooldown = Math.max(0, (zombie.wireDamageCooldown || 0) - dt);
+        if (zombie.wireDamageCooldown <= 0) {
+          zombie.wireDamageCooldown = 0.55;
+          zombie.takeDamage(trap.damage || 8, { trap: true });
+          this.particles.sparks(zombie.x, zombie.y, 3, "#d8fbff");
+        }
+      }
+
+      if (this.player.hp > 0 && trap.playerCooldown <= 0 && this.circleIntersectsRect(this.player, trap)) {
+        trap.playerCooldown = 0.8;
+        this.player.takeDamage(5, trap.x + trap.w * 0.5, trap.y + trap.h * 0.5);
+      }
+    }
+
+    triggerTeslaTrap(trap) {
+      const targets = this.zombies
+        .filter((zombie) => zombie.alive && GameUtils.distance(trap.x, trap.y, zombie.x, zombie.y) <= trap.range)
+        .sort((left, right) => GameUtils.distance(trap.x, trap.y, left.x, left.y) - GameUtils.distance(trap.x, trap.y, right.x, right.y))
+        .slice(0, 3);
+
+      if (!targets.length) {
+        trap.cooldown = 0.18;
+        return;
+      }
+
+      trap.cooldown = trap.fireRate || 2.2;
+      trap.flash = 0.32;
+      trap.arcs = targets.map((target) => ({ x: target.x, y: target.y, life: 0.18 }));
+      this.particles.sparks(trap.x, trap.y, 8, "#98f0ff");
+      this.audio.playSfx("bonus");
+      this.addShake(1.6);
+
+      for (const target of targets) {
+        target.trapSlowFactor = Math.min(target.trapSlowFactor || 1, 0.55);
+        target.takeDamage(trap.damage || 20, { trap: true });
+      }
+    }
+
+    fireTurretTrap(trap) {
+      const target = this.zombies
+        .filter((zombie) => zombie.alive && GameUtils.distance(trap.x, trap.y, zombie.x, zombie.y) <= trap.range)
+        .sort((left, right) => GameUtils.distance(trap.x, trap.y, left.x, left.y) - GameUtils.distance(trap.x, trap.y, right.x, right.y))[0];
+
+      if (!target) {
+        trap.cooldown = 0.12;
+        return;
+      }
+
+      const angle = Math.atan2(target.y - trap.y, target.x - trap.x);
+      const speed = 980;
+      trap.angle = angle;
+      trap.cooldown = trap.fireRate || 0.42;
+      trap.flash = 0.14;
+      this.spawnBullet({
+        x: trap.x + Math.cos(angle) * (trap.radius + 8),
+        y: trap.y + Math.sin(angle) * (trap.radius + 8),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: 2.7,
+        damage: trap.damage || 16,
+        color: "#8dc3ff",
+        pierce: 0,
+        critChance: 0,
+        angle,
+        life: 0.8,
+        weaponKey: "turret"
+      });
+      this.particles.sparks(trap.x + Math.cos(angle) * trap.radius, trap.y + Math.sin(angle) * trap.radius, 3, "#8dc3ff");
+      this.audio.playSfx("shoot");
+    }
+
+    hitTrapWithBullet(bullet) {
+      for (const trap of this.traps || []) {
+        if (trap.type !== "barrel" || trap.spent) {
+          continue;
+        }
+
+        const distance = GameUtils.distance(bullet.x, bullet.y, trap.x, trap.y);
+        if (distance <= (trap.radius || 16) + (bullet.radius || 2)) {
+          this.damageTrap(trap, bullet.damage || 10);
+          this.particles.sparks(bullet.x, bullet.y, 6, "#ffca63");
+          return true;
+        }
+      }
+      return false;
+    }
+
+    damageTrap(trap, amount) {
+      if (!trap || trap.spent || trap.type !== "barrel") {
+        return false;
+      }
+
+      trap.hp -= amount;
+      trap.flash = 0.16;
+      if (trap.hp <= 0) {
+        this.detonateTrap(trap);
+      }
+      return true;
+    }
+
+    detonateTrap(trap) {
+      if (!trap || trap.spent) {
+        return false;
+      }
+
+      trap.spent = true;
+      trap.hp = 0;
+      trap.flash = 0.5;
+      this.floaters.add("BOOM", trap.x, trap.y - 22, "#ffca63", {
+        life: 0.75,
+        scale: 1,
+        velocityY: -24
+      });
+      this.spawnExplosion(trap.x, trap.y, trap.blastRadius || 112, trap.damage || 100, "#ff9f5a");
+      return true;
+    }
+
+    drawTraps(ctx) {
+      if (!this.traps?.length) {
+        return;
+      }
+
+      for (const trap of this.traps) {
+        if (trap.type === "wire") {
+          this.drawWireTrap(ctx, trap);
+        } else if (trap.type === "barrel") {
+          this.drawBarrelTrap(ctx, trap);
+        } else if (trap.type === "tesla") {
+          this.drawTeslaTrap(ctx, trap);
+        } else if (trap.type === "turret") {
+          this.drawTurretTrap(ctx, trap);
+        }
+      }
+    }
+
+    drawWireTrap(ctx, trap) {
+      ctx.save();
+      const pulse = 0.65 + Math.sin(this.worldTime * 6 + trap.pulse) * 0.18;
+      ctx.fillStyle = "rgba(20, 26, 23, 0.82)";
+      ctx.fillRect(trap.x, trap.y, trap.w, trap.h);
+      ctx.strokeStyle = `rgba(216, 251, 255, ${0.34 + pulse * 0.18})`;
+      ctx.lineWidth = 2;
+      for (let y = trap.y + 5; y < trap.y + trap.h; y += 7) {
+        ctx.beginPath();
+        ctx.moveTo(trap.x + 6, y);
+        ctx.lineTo(trap.x + trap.w - 6, y + Math.sin(this.worldTime * 8 + y) * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(255, 211, 77, 0.45)";
+      ctx.lineWidth = 1.5;
+      for (let x = trap.x + 10; x < trap.x + trap.w - 8; x += 18) {
+        ctx.beginPath();
+        ctx.moveTo(x, trap.y + 3);
+        ctx.lineTo(x + 7, trap.y + trap.h - 3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    drawBarrelTrap(ctx, trap) {
+      ctx.save();
+      ctx.translate(trap.x, trap.y);
+      const radius = trap.radius || 16;
+      if (trap.spent) {
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = "rgba(11, 9, 8, 0.86)";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.85, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 159, 90, 0.22)";
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      const flash = trap.flash || 0;
+      const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, radius * (3.2 + flash * 8));
+      glow.addColorStop(0, `rgba(255, 159, 90, ${0.28 + flash})`);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * (3.2 + flash * 8), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+
+      const gradient = ctx.createLinearGradient(-radius, -radius, radius, radius);
+      gradient.addColorStop(0, "#ffca63");
+      gradient.addColorStop(0.5, "#b83d2e");
+      gradient.addColorStop(1, "#32130d");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(5, 8, 6, 0.8)";
+      ctx.fillRect(-radius * 0.54, -radius * 0.18, radius * 1.08, radius * 0.28);
+      ctx.fillStyle = "#fff0b5";
+      ctx.font = "700 10px Bahnschrift, Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("EXP", 0, 1);
+      ctx.restore();
+    }
+
+    drawTeslaTrap(ctx, trap) {
+      ctx.save();
+      const pulse = 0.5 + Math.sin(this.worldTime * 8 + trap.pulse) * 0.18 + (trap.flash || 0);
+      ctx.globalCompositeOperation = "lighter";
+      const glow = ctx.createRadialGradient(trap.x, trap.y, 8, trap.x, trap.y, trap.range * 0.9);
+      glow.addColorStop(0, `rgba(152, 240, 255, ${0.18 + pulse * 0.08})`);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(trap.x, trap.y, trap.range * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (const arc of trap.arcs || []) {
+        ctx.strokeStyle = `rgba(152, 240, 255, ${GameUtils.clamp(arc.life * 5, 0, 1)})`;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(trap.x, trap.y);
+        const midX = (trap.x + arc.x) * 0.5 + Math.sin(this.worldTime * 30 + arc.x) * 16;
+        const midY = (trap.y + arc.y) * 0.5 + Math.cos(this.worldTime * 26 + arc.y) * 16;
+        ctx.quadraticCurveTo(midX, midY, arc.x, arc.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    drawTurretTrap(ctx, trap) {
+      ctx.save();
+      ctx.translate(trap.x, trap.y);
+      const radius = trap.radius || 18;
+      const angle = trap.angle ?? Math.sin(this.worldTime * 0.9 + trap.pulse) * 0.8;
+      const flash = trap.flash || 0;
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
+      ctx.beginPath();
+      ctx.ellipse(0, radius * 0.7, radius * 1.15, radius * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.rotate(angle);
+      ctx.fillStyle = "#25343b";
+      ctx.fillRect(-radius * 0.3, -5, radius * 1.65, 10);
+      ctx.fillStyle = "#8dc3ff";
+      ctx.fillRect(radius * 0.85, -2, radius * 0.55, 4);
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255, 241, 181, ${GameUtils.clamp(flash * 6, 0, 0.9)})`;
+        ctx.beginPath();
+        ctx.arc(radius * 1.55, 0, radius * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.rotate(-angle);
+
+      const base = ctx.createRadialGradient(-radius * 0.2, -radius * 0.3, 3, 0, 0, radius * 1.2);
+      base.addColorStop(0, "#d8fbff");
+      base.addColorStop(0.42, "#4f6c76");
+      base.addColorStop(1, "#11191d");
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(141, 195, 255, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
     }
 
     drawEntities(ctx) {
@@ -2544,12 +3091,16 @@
           continue;
         }
 
+<<<<<<< HEAD
         const blocked = this.getBlockingRects().some((rect) => (
           this.circleIntersectsRect(bullet, rect) ||
           this.segmentIntersectsRect(previousX, previousY, bullet.x, bullet.y, rect, bullet.radius)
         ));
         if (blocked) {
           this.particles.sparks(bullet.x, bullet.y, 4, bullet.color);
+=======
+        if (this.hitTrapWithBullet(bullet)) {
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
           this.bullets.splice(index, 1);
           continue;
         }
@@ -2739,7 +3290,8 @@
     }
 
     addCoins(amount) {
-      const total = Math.max(0, Math.round(amount * this.bonuses.getCoinMultiplier()));
+      const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
+      const total = Math.max(0, Math.round(amount * this.bonuses.getCoinMultiplier() * (mode.coinMult || 1)));
       this.coins += total;
       return total;
     }
@@ -2807,6 +3359,12 @@
         const falloff = 1 - GameUtils.distance(x, y, this.player.x, this.player.y) / radius;
         this.player.takeDamage(damage * (0.4 + falloff * 0.6), x, y);
       }
+
+      for (const trap of this.traps || []) {
+        if (trap.type === "barrel" && !trap.spent && GameUtils.distance(x, y, trap.x, trap.y) <= radius + (trap.radius || 16)) {
+          this.detonateTrap(trap);
+        }
+      }
     }
 
     nukeZombies() {
@@ -2827,10 +3385,17 @@
     onZombieKilled(zombie, meta = {}) {
       this.stats.kills += 1;
       this.missions.onZombieKilled();
+<<<<<<< HEAD
       const isBoss = zombie.isBoss?.();
       const baseScore = zombie.scoreValue + this.waveManager.wave * 9;
       const headshotBonus = meta.headshot ? 35 : 0;
       const killScore = isBoss ? baseScore + 350 : baseScore + headshotBonus;
+=======
+      const scoreMult = this.getModeSettings().scoreMult || 1;
+      const baseScore = zombie.scoreValue + this.waveManager.wave * 9;
+      const headshotBonus = meta.headshot ? 35 : 0;
+      const killScore = Math.round((zombie.type === "boss" ? baseScore + 350 : baseScore + headshotBonus) * scoreMult);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
       this.stats.score += killScore;
 
       const coins = zombie.coinValue + Math.round(this.waveManager.wave * 1.8) + (isBoss ? 90 : 0);
@@ -2857,9 +3422,15 @@
         this.pickups.push(pickup);
       }
 
+<<<<<<< HEAD
       if (isBoss) {
         this.ui.showNotification(`${zombie.base.name || "Boss"} eliminated`, "danger", 2600);
         this.stats.score += 500;
+=======
+      if (zombie.type === "boss") {
+        this.ui.showNotification("Boss eliminated", "danger", 2600);
+        this.stats.score += Math.round(500 * scoreMult);
+>>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
         this.addCoins(120);
       }
 
@@ -2892,8 +3463,8 @@
       this.settings.playerName = this.settings.playerName || "Survivor";
       this.saveSettings();
       this.resetRun();
-      this.state = "playing";
-      this.ui.setMode("playing");
+      this.state = "tutorial";
+      this.ui.setMode("tutorial");
       this.audio.playSfx("ui");
       this.input.fire = false;
       this.input.reloadPressed = false;
@@ -2901,8 +3472,24 @@
       this.input.touchMoveY = 0;
     }
 
+    startFirstWave() {
+      if (this.state !== "tutorial") {
+        return false;
+      }
+
+      this.audio.unlock();
+      this.audio.startMusic();
+      this.waveManager.startRun();
+      this.state = "playing";
+      this.ui.setMode("playing");
+      this.ui.showNotification(`${this.getModeSettings().name} mode`, "accent", 1800);
+      this.audio.playSfx("ui");
+      return true;
+    }
+
     resetRun() {
-      this.coins = 0;
+      const mode = this.getModeSettings();
+      this.coins = mode.startCoins || 0;
       this.stats = this.createStats();
       this.zombies.length = 0;
       this.bullets.length = 0;
@@ -2920,7 +3507,8 @@
       this.player.hp = this.player.getMaxHp();
       this.bonuses.reset();
       this.missions.reset();
-      this.waveManager.startRun();
+      this.waveManager.reset();
+      this.resetLevelState(true);
       this.input.aimX = this.player.x + 50;
       this.input.aimY = this.player.y;
       this.particles.clear();
@@ -2962,6 +3550,7 @@
   }
 
   global.GameUtils = GameUtils;
+  global.GAME_MODE_DEFS = GAME_MODE_DEFS;
   global.AudioManager = AudioManager;
   global.ParticleSystem = ParticleSystem;
   global.FloatingTextManager = FloatingTextManager;

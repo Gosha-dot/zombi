@@ -60,6 +60,9 @@
     }
 
     getMaxHp() {
+      if (this.game.getModeSettings?.().oneHp) {
+        return 1;
+      }
       return 100 + this.upgrades.health * 20;
     }
 
