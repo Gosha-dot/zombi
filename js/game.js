@@ -1172,6 +1172,7 @@
       return {
         ...normalizedLayout,
         ammoBox: this.createAmmoBox(),
+        lootContainers: this.createLootContainers(location.key),
         locationKey: location.key,
         locationName: location.name,
         weather: location.weather,
@@ -1180,7 +1181,6 @@
       };
     }
 
-<<<<<<< HEAD
     normalizeLeverToOppositeDoor(layout) {
       if (!layout?.door || !layout?.lever) {
         return layout;
@@ -1240,7 +1240,55 @@
         amount: 50,
         label: "Ammo Box"
       };
-=======
+    }
+
+    createLootContainers(locationKey = "city") {
+      const wave = this.waveManager?.wave || 1;
+      const size = Math.min(58, Math.max(42, Math.round(Math.min(this.width, this.height) * 0.065)));
+      const safeSize = Math.round(size * 0.92);
+      const positions = {
+        city: [
+          { kind: "chest", x: 0.24, y: 0.34 },
+          { kind: "safe", x: 0.78, y: 0.42 },
+          { kind: "chest", x: 0.62, y: 0.76 }
+        ],
+        hospital: [
+          { kind: "safe", x: 0.25, y: 0.36 },
+          { kind: "chest", x: 0.68, y: 0.38 },
+          { kind: "safe", x: 0.74, y: 0.72 }
+        ],
+        warehouse: [
+          { kind: "chest", x: 0.28, y: 0.28 },
+          { kind: "chest", x: 0.72, y: 0.34 },
+          { kind: "safe", x: 0.56, y: 0.73 }
+        ],
+        forest: [
+          { kind: "chest", x: 0.22, y: 0.42 },
+          { kind: "safe", x: 0.7, y: 0.32 },
+          { kind: "chest", x: 0.66, y: 0.72 }
+        ],
+        laboratory: [
+          { kind: "safe", x: 0.28, y: 0.34 },
+          { kind: "safe", x: 0.72, y: 0.48 },
+          { kind: "chest", x: 0.44, y: 0.76 }
+        ]
+      };
+
+      return (positions[locationKey] || positions.city).map((entry, index) => {
+        const w = entry.kind === "safe" ? safeSize : size;
+        const h = entry.kind === "safe" ? Math.round(safeSize * 1.1) : Math.round(size * 0.72);
+        return {
+          id: `${locationKey}-${wave}-${entry.kind}-${index}`,
+          kind: entry.kind,
+          x: Math.round(GameUtils.clamp(this.width * entry.x - w * 0.5, 28, this.width - w - 28)),
+          y: Math.round(GameUtils.clamp(this.height * entry.y - h * 0.5, 96, this.height - h - 80)),
+          w,
+          h,
+          opened: false
+        };
+      });
+    }
+
     createTrapsForLocation(previous = []) {
       const locationKey = this.getCurrentLocation()?.key || "city";
       const priorById = new Map((previous || []).map((trap) => [trap.id, trap]));
@@ -1338,7 +1386,6 @@
       }
 
       return traps;
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     getBlockingRects() {
@@ -1449,14 +1496,9 @@
     createAtmosphereState() {
       const wave = this.waveManager?.wave || 1;
       const location = this.getCurrentLocation();
-<<<<<<< HEAD
-      const kind = location?.weather || (wave % 6 === 0 ? "rain" : "ash");
-      const atmosphereDensity = location?.atmosphereDensity || 1;
-=======
       const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
       const kind = location?.weather || (wave % 6 === 0 ? "rain" : wave % 3 === 0 ? "fog" : "ash");
-      const fogDensity = (location?.fogDensity || 1) * (mode.fogMult || 1);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
+      const atmosphereDensity = (location?.atmosphereDensity || location?.fogDensity || 1) * (mode.fogMult || 1);
       return {
         kind,
         intensity: GameUtils.clamp((0.42 + wave * 0.025) * atmosphereDensity, 0.38, 1),
@@ -1506,6 +1548,71 @@
 
     canUseAmmoBox() {
       return Boolean(this.worldLayout?.ammoBox && this.getAmmoBoxDistance() < 104);
+    }
+
+    getNearestLootContainer(maxDistance = 110) {
+      const containers = this.worldLayout?.lootContainers || [];
+      let nearest = null;
+      let nearestDistance = maxDistance;
+      for (const container of containers) {
+        if (container.opened) {
+          continue;
+        }
+        const centerX = container.x + container.w * 0.5;
+        const centerY = container.y + container.h * 0.5;
+        const distance = GameUtils.distance(this.player.x, this.player.y, centerX, centerY);
+        if (distance < nearestDistance) {
+          nearest = container;
+          nearestDistance = distance;
+        }
+      }
+      return nearest;
+    }
+
+    canOpenLootContainer() {
+      return Boolean(this.getNearestLootContainer());
+    }
+
+    tryOpenLootContainer() {
+      const container = this.getNearestLootContainer();
+      if (!container) {
+        return false;
+      }
+
+      container.opened = true;
+      const isSafe = container.kind === "safe";
+      const coinReward = Math.round((isSafe ? 80 : 45) + this.waveManager.wave * (isSafe ? 12 : 7) + Math.random() * (isSafe ? 50 : 30));
+      const ammoReward = isSafe ? 45 : 28;
+      const grenadeReward = isSafe && Math.random() < 0.55 ? 1 : Math.random() < 0.28 ? 1 : 0;
+      const bonusTypes = isSafe
+        ? ["fullHeal", "armorPlate", "doubleDamage", "shield", "coinMultiplier", "moduleDamage", "moduleMagazine", "nuke"]
+        : ["healthPack", "ammoPack", "grenadePack", "rapidFire", "freeze", "moduleReload", "moduleOptic"];
+      const bonusType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
+      const centerX = container.x + container.w * 0.5;
+      const centerY = container.y + container.h * 0.5;
+
+      this.addCoins(coinReward);
+      this.player.addAmmo(ammoReward);
+      if (grenadeReward) {
+        this.addGrenades(grenadeReward, { notify: false });
+      }
+      this.pickups.push(new BonusPickup(this, bonusType, centerX, centerY - 18));
+
+      this.floaters.add(`+${coinReward}c`, centerX, container.y - 8, "#ffd34d", {
+        life: 0.9,
+        scale: 1,
+        velocityY: -28
+      });
+      this.floaters.add(`+${ammoReward} AMMO`, centerX + 12, container.y + 8, "#f1d96b", {
+        life: 0.8,
+        scale: 0.86,
+        velocityY: -22
+      });
+      this.particles.sparks(centerX, centerY, isSafe ? 14 : 9, isSafe ? "#d8fbff" : "#ffd34d");
+      this.ui.showNotification(`${isSafe ? "Safe" : "Chest"} opened: loot found`, "accent", 2200);
+      this.audio.playSfx("pickup");
+      this.ui.updateHUD();
+      return true;
     }
 
     tryBuyAmmoFromBox() {
@@ -1723,19 +1830,22 @@
           case "Digit7":
             this.player.setWeaponByIndex(6);
             break;
-          case "KeyQ":
+          case "KeyE":
             event.preventDefault();
             if (!event.repeat) {
               this.ui.toggleQuests();
             }
             break;
-          case "KeyE":
-            this.player.switchWeapon(1);
+          case "Tab":
+            event.preventDefault();
+            if (!event.repeat) {
+              this.ui.toggleInventory();
+            }
             break;
           case "KeyF":
             event.preventDefault();
-            if (!this.tryBuyAmmoFromBox() && !this.tryPullLever()) {
-              this.tryOpenDoor();
+            if (!this.tryPullLever() && !this.tryOpenDoor() && !this.tryOpenLootContainer()) {
+              this.tryBuyAmmoFromBox();
             }
             break;
           case "KeyG":
@@ -1888,6 +1998,10 @@
       this.ui.showNotification("Night vision engaged", "accent", 1800);
       this.audio.playSfx("bonus");
       return true;
+    }
+
+    isTraderWave() {
+      return this.waveManager?.state === "intermission" && this.waveManager.wave > 0 && this.waveManager.wave % 10 === 0;
     }
 
     render() {
@@ -2172,6 +2286,7 @@
       }
 
       this.drawAmmoBox(ctx);
+      this.drawLootContainers(ctx);
 
       const door = this.worldLayout.door;
       if (door) {
@@ -2391,6 +2506,65 @@
       ctx.fillRect(box.x + box.w * 0.44, box.y, box.w * 0.12, box.h);
       ctx.fillRect(box.x, box.y + box.h * 0.44, box.w, box.h * 0.12);
       ctx.restore();
+    }
+
+    drawLootContainers(ctx) {
+      for (const container of this.worldLayout?.lootContainers || []) {
+        const centerX = container.x + container.w * 0.5;
+        const centerY = container.y + container.h * 0.5;
+        const near = !container.opened && GameUtils.distance(this.player.x, this.player.y, centerX, centerY) < 110;
+        ctx.save();
+
+        if (near) {
+          ctx.fillStyle = container.kind === "safe" ? "rgba(216, 251, 255, 0.12)" : "rgba(255, 211, 77, 0.12)";
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, 68 + Math.sin(this.worldTime * 5) * 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = container.opened ? 0.54 : 1;
+        if (container.kind === "safe") {
+          const gradient = ctx.createLinearGradient(container.x, container.y, container.x + container.w, container.y + container.h);
+          gradient.addColorStop(0, "rgba(76, 92, 100, 0.98)");
+          gradient.addColorStop(1, "rgba(18, 26, 29, 0.98)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(container.x, container.y, container.w, container.h);
+          ctx.strokeStyle = near ? "rgba(216, 251, 255, 0.95)" : "rgba(216, 251, 255, 0.32)";
+          ctx.lineWidth = near ? 3 : 2;
+          ctx.strokeRect(container.x, container.y, container.w, container.h);
+          ctx.fillStyle = "rgba(216, 251, 255, 0.18)";
+          ctx.fillRect(container.x + 7, container.y + 7, container.w - 14, container.h - 14);
+          ctx.strokeStyle = "rgba(5, 10, 12, 0.8)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, Math.max(7, container.w * 0.18), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "#d8fbff";
+          ctx.font = "800 11px Bahnschrift, Trebuchet MS, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(container.opened ? "OPEN" : "SAFE", centerX, container.y + container.h - 10);
+        } else {
+          const gradient = ctx.createLinearGradient(container.x, container.y, container.x + container.w, container.y + container.h);
+          gradient.addColorStop(0, "rgba(120, 78, 38, 0.98)");
+          gradient.addColorStop(1, "rgba(48, 31, 18, 0.98)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(container.x, container.y, container.w, container.h);
+          ctx.strokeStyle = near ? "rgba(255, 211, 77, 0.95)" : "rgba(255, 211, 77, 0.34)";
+          ctx.lineWidth = near ? 3 : 2;
+          ctx.strokeRect(container.x, container.y, container.w, container.h);
+          ctx.fillStyle = "rgba(255, 211, 77, 0.24)";
+          ctx.fillRect(container.x, container.y + container.h * 0.42, container.w, container.h * 0.16);
+          ctx.fillRect(container.x + container.w * 0.42, container.y, container.w * 0.16, container.h);
+          ctx.fillStyle = "#ffd34d";
+          ctx.font = "800 11px Bahnschrift, Trebuchet MS, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(container.opened ? "OPEN" : "LOOT", centerX, centerY);
+        }
+
+        ctx.restore();
+      }
     }
 
     circleIntersectsRect(entity, rect) {
@@ -2994,6 +3168,15 @@
         ctx.textBaseline = "bottom";
         ctx.fillText("Press F to open the security door", this.width * 0.5, this.height - 18);
         ctx.restore();
+      } else if (this.canOpenLootContainer()) {
+        const container = this.getNearestLootContainer();
+        ctx.save();
+        ctx.fillStyle = container.kind === "safe" ? "rgba(216, 251, 255, 0.95)" : "rgba(255, 211, 77, 0.95)";
+        ctx.font = "700 17px Bahnschrift, Trebuchet MS, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`Press F to open the ${container.kind}`, this.width * 0.5, this.height - 18);
+        ctx.restore();
       } else if (this.canUseAmmoBox()) {
         const box = this.worldLayout.ammoBox;
         ctx.save();
@@ -3091,16 +3274,17 @@
           continue;
         }
 
-<<<<<<< HEAD
         const blocked = this.getBlockingRects().some((rect) => (
           this.circleIntersectsRect(bullet, rect) ||
           this.segmentIntersectsRect(previousX, previousY, bullet.x, bullet.y, rect, bullet.radius)
         ));
         if (blocked) {
           this.particles.sparks(bullet.x, bullet.y, 4, bullet.color);
-=======
+          this.bullets.splice(index, 1);
+          continue;
+        }
+
         if (this.hitTrapWithBullet(bullet)) {
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
           this.bullets.splice(index, 1);
           continue;
         }
@@ -3385,17 +3569,11 @@
     onZombieKilled(zombie, meta = {}) {
       this.stats.kills += 1;
       this.missions.onZombieKilled();
-<<<<<<< HEAD
       const isBoss = zombie.isBoss?.();
-      const baseScore = zombie.scoreValue + this.waveManager.wave * 9;
-      const headshotBonus = meta.headshot ? 35 : 0;
-      const killScore = isBoss ? baseScore + 350 : baseScore + headshotBonus;
-=======
       const scoreMult = this.getModeSettings().scoreMult || 1;
       const baseScore = zombie.scoreValue + this.waveManager.wave * 9;
       const headshotBonus = meta.headshot ? 35 : 0;
-      const killScore = Math.round((zombie.type === "boss" ? baseScore + 350 : baseScore + headshotBonus) * scoreMult);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
+      const killScore = Math.round((isBoss ? baseScore + 350 : baseScore + headshotBonus) * scoreMult);
       this.stats.score += killScore;
 
       const coins = zombie.coinValue + Math.round(this.waveManager.wave * 1.8) + (isBoss ? 90 : 0);
@@ -3422,15 +3600,9 @@
         this.pickups.push(pickup);
       }
 
-<<<<<<< HEAD
       if (isBoss) {
         this.ui.showNotification(`${zombie.base.name || "Boss"} eliminated`, "danger", 2600);
-        this.stats.score += 500;
-=======
-      if (zombie.type === "boss") {
-        this.ui.showNotification("Boss eliminated", "danger", 2600);
         this.stats.score += Math.round(500 * scoreMult);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
         this.addCoins(120);
       }
 

@@ -722,6 +722,20 @@ body::after {
   letter-spacing: 0.1em;
 }
 
+.shop-meta__trader {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 211, 77, 0.12);
+  border: 1px solid rgba(255, 211, 77, 0.26);
+  color: var(--warning);
+  font: 800 0.78rem/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -886,7 +900,6 @@ body::after {
   text-transform: uppercase;
 }
 
-<<<<<<< HEAD
 .quests-body {
   display: grid;
   gap: 16px;
@@ -904,7 +917,64 @@ body::after {
 .quests-list {
   display: grid;
   gap: 12px;
-=======
+}
+
+.inventory-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.inventory-section {
+  display: grid;
+  gap: 12px;
+}
+
+.inventory-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.inventory-card {
+  display: grid;
+  gap: 8px;
+  min-height: 118px;
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(181, 255, 199, 0.1);
+  background: linear-gradient(180deg, rgba(11, 22, 17, 0.92), rgba(5, 10, 8, 0.95));
+}
+
+.inventory-card--active {
+  border-color: rgba(103, 240, 167, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px rgba(103, 240, 167, 0.08);
+}
+
+.inventory-card--bonus {
+  border-color: rgba(255, 211, 77, 0.28);
+}
+
+.inventory-card__label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.inventory-card strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  letter-spacing: 0.04em;
+}
+
+.inventory-card span:last-child {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
 .tutorial-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -927,7 +997,6 @@ body::after {
 .tutorial-card span {
   color: var(--muted);
   line-height: 1.55;
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 }
 
 .summary-card {
@@ -1103,6 +1172,7 @@ body::after {
   .settings-grid,
   .gameover-grid,
   .shop-grid,
+  .inventory-list,
   .tutorial-grid {
     grid-template-columns: 1fr;
   }

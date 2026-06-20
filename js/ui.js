@@ -39,6 +39,9 @@
         questsList: byId("questsList"),
         questsRewardText: byId("questsRewardText"),
         closeQuestsBtn: byId("closeQuestsBtn"),
+        inventoryPanel: byId("inventoryPanel"),
+        inventoryBody: byId("inventoryBody"),
+        closeInventoryBtn: byId("closeInventoryBtn"),
         notifications: byId("notificationLayer"),
         mainMenu: byId("mainMenu"),
         startGameBtn: byId("startGameBtn"),
@@ -63,6 +66,7 @@
         tutorialModeText: byId("tutorialModeText"),
         shopPanel: byId("shopPanel"),
         shopGrid: byId("shopGrid"),
+        traderText: byId("traderText"),
         startNextWaveBtn: byId("startNextWaveBtn"),
         waveCountdownText: byId("waveCountdownText"),
         gameOverPanel: byId("gameOverPanel"),
@@ -95,6 +99,7 @@
       this.els.startNextWaveBtn.addEventListener("click", () => this.game.waveManager.skipCountdown());
       this.els.closeMapBtn.addEventListener("click", () => this.closeMap());
       this.els.closeQuestsBtn.addEventListener("click", () => this.closeQuests());
+      this.els.closeInventoryBtn.addEventListener("click", () => this.closeInventory());
       this.els.saveScoreBtn.addEventListener("click", () => this.saveScore());
       this.els.playAgainBtn.addEventListener("click", () => this.game.startNewRun());
       this.els.mainMenuBtn.addEventListener("click", () => this.game.returnToMenu());
@@ -237,11 +242,9 @@
       this.minimapCtx = this.els.miniMapCanvas ? this.els.miniMapCanvas.getContext("2d") : null;
       this.mapCtx = this.els.worldMapCanvas ? this.els.worldMapCanvas.getContext("2d") : null;
       this.mapOpen = false;
-<<<<<<< HEAD
       this.questsOpen = false;
-=======
+      this.inventoryOpen = false;
       this.renderModePicker();
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     updateSettings() {
@@ -300,11 +303,9 @@
       hideModal(this.els.settingsPanel);
       hideModal(this.els.gameOverPanel);
       hideModal(this.els.mapPanel);
-<<<<<<< HEAD
       hideModal(this.els.questsPanel);
-=======
+      hideModal(this.els.inventoryPanel);
       hideModal(this.els.tutorialPanel);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       if (mode !== "intermission") {
         hideModal(this.els.shopPanel);
@@ -332,6 +333,7 @@
       if (mode !== "playing" && mode !== "intermission") {
         this.mapOpen = false;
         this.questsOpen = false;
+        this.inventoryOpen = false;
       }
     }
 
@@ -414,6 +416,30 @@
       }
     }
 
+    openInventory() {
+      if (this.game.state !== "playing" && this.game.state !== "intermission") {
+        return;
+      }
+      this.inventoryOpen = true;
+      this.els.inventoryPanel.classList.remove("panel--hidden");
+      this.els.inventoryPanel.setAttribute("aria-hidden", "false");
+      this.renderInventory();
+    }
+
+    closeInventory() {
+      this.inventoryOpen = false;
+      this.els.inventoryPanel.classList.add("panel--hidden");
+      this.els.inventoryPanel.setAttribute("aria-hidden", "true");
+    }
+
+    toggleInventory() {
+      if (this.inventoryOpen) {
+        this.closeInventory();
+      } else {
+        this.openInventory();
+      }
+    }
+
     setShopCountdown(value) {
       const seconds = Math.max(0, Math.ceil(value || 0));
       const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -427,6 +453,9 @@
 
     renderShop() {
       const categories = this.game.shop.getCategories();
+      if (this.els.traderText) {
+        this.els.traderText.hidden = !this.game.isTraderWave?.();
+      }
       this.els.shopGrid.innerHTML = categories
         .map((category) => {
           const items = category.items
@@ -554,6 +583,9 @@
       if (this.questsOpen) {
         this.renderQuests();
       }
+      if (this.inventoryOpen) {
+        this.renderInventory();
+      }
       this.renderMinimap();
       if (this.mapOpen) {
         this.renderWorldMap();
@@ -594,6 +626,61 @@
           </article>
         `)
         .join("");
+    }
+
+    renderInventory() {
+      if (!this.els.inventoryBody) {
+        return;
+      }
+
+      const player = this.game.player;
+      const weapons = player.getOwnedWeaponKeys()
+        .map((key) => {
+          const def = global.WEAPON_DEFS?.[key] || {};
+          const active = key === player.weaponKey;
+          const modules = player.getWeaponModuleText(key);
+          return `
+            <article class="inventory-card ${active ? "inventory-card--active" : ""}">
+              <span class="inventory-card__label">${active ? "Equipped" : "Weapon"}</span>
+              <strong>${def.name || key}</strong>
+              <span>${modules === "None" ? "No modules" : modules}</span>
+            </article>
+          `;
+        })
+        .join("");
+
+      const activeBonuses = this.game.bonuses.getActiveBonuses();
+      const bonusMarkup = activeBonuses.length
+        ? activeBonuses.map((bonus) => `
+          <article class="inventory-card inventory-card--bonus">
+            <span class="inventory-card__label">Bonus</span>
+            <strong>${bonus.label}</strong>
+            <span>${GameUtils.formatTime(bonus.remaining)} left</span>
+          </article>
+        `).join("")
+        : `<article class="inventory-card"><span class="inventory-card__label">Bonus</span><strong>None active</strong><span>Find loot in chests and safes.</span></article>`;
+
+      const unopened = (this.game.worldLayout?.lootContainers || []).filter((container) => !container.opened).length;
+      this.els.inventoryBody.innerHTML = `
+        <section class="inventory-section">
+          <h3 class="shop-category__title">Resources</h3>
+          <div class="inventory-list">
+            <article class="inventory-card"><span class="inventory-card__label">Coins</span><strong>${this.game.coins.toLocaleString()}</strong><span>Spend at shops and traders</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Ammo</span><strong>${player.getAmmoText()}</strong><span>Reserve and magazine</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Grenades</span><strong>${player.getGrenadeText()}</strong><span>Throw with H or right click</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Keycards</span><strong>${player.keycards || 0}</strong><span>Open security doors</span></article>
+            <article class="inventory-card"><span class="inventory-card__label">Loot</span><strong>${unopened}</strong><span>Closed chests or safes nearby</span></article>
+          </div>
+        </section>
+        <section class="inventory-section">
+          <h3 class="shop-category__title">Weapons</h3>
+          <div class="inventory-list">${weapons}</div>
+        </section>
+        <section class="inventory-section">
+          <h3 class="shop-category__title">Active Bonuses</h3>
+          <div class="inventory-list">${bonusMarkup}</div>
+        </section>
+      `;
     }
 
     renderMinimap() {
@@ -654,11 +741,9 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMini);
-<<<<<<< HEAD
       this.drawAmmoBoxMarker(ctx, toMini, 3.4);
-=======
+      this.drawLootContainerMarkers(ctx, toMini, 3.2);
       this.drawMapTraps(ctx, toMini, 0.62);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       for (const pickup of this.game.pickups) {
         const point = toMini(pickup.x, pickup.y);
@@ -762,11 +847,9 @@
       ctx.strokeRect(pad, pad, mapWidth, mapHeight);
 
       this.drawMapStructures(ctx, toMap);
-<<<<<<< HEAD
       this.drawAmmoBoxMarker(ctx, toMap, 6);
-=======
+      this.drawLootContainerMarkers(ctx, toMap, 5.6);
       this.drawMapTraps(ctx, toMap, 1);
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       for (const pickup of this.game.pickups) {
         const point = toMap(pickup.x, pickup.y);
@@ -811,8 +894,9 @@
       const wave = this.game.waveManager.wave || 1;
       const aliveZombies = this.game.zombies.filter((zombie) => zombie.alive).length;
       const drops = this.game.pickups.length;
+      const loot = (this.game.worldLayout?.lootContainers || []).filter((container) => !container.opened).length;
       const bossWave = this.game.waveManager.bossWave ? " - Boss wave" : "";
-      this.els.mapInfoText.textContent = `Wave ${wave} - ${aliveZombies} zombies - ${drops} drops${bossWave}`;
+      this.els.mapInfoText.textContent = `Wave ${wave} - ${aliveZombies} zombies - ${drops} drops - ${loot} loot${bossWave}`;
     }
 
     drawMapStructures(ctx, toPoint) {
@@ -883,7 +967,6 @@
       ctx.restore();
     }
 
-<<<<<<< HEAD
     drawAmmoBoxMarker(ctx, toPoint, size) {
       const box = this.game.worldLayout?.ammoBox;
       if (!box) {
@@ -905,7 +988,29 @@
       ctx.textBaseline = "middle";
       ctx.fillText("A", point.x, point.y + 0.5);
       ctx.restore();
-=======
+    }
+
+    drawLootContainerMarkers(ctx, toPoint, size) {
+      for (const container of this.game.worldLayout?.lootContainers || []) {
+        const point = toPoint(container.x + container.w * 0.5, container.y + container.h * 0.5);
+        ctx.save();
+        ctx.globalAlpha = container.opened ? 0.38 : 1;
+        ctx.fillStyle = container.kind === "safe" ? "rgba(216, 251, 255, 0.95)" : "rgba(255, 211, 77, 0.95)";
+        ctx.strokeStyle = "rgba(3, 8, 6, 0.92)";
+        ctx.lineWidth = 1.5;
+        if (container.kind === "safe") {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(point.x - size, point.y - size * 0.75, size * 2, size * 1.5);
+          ctx.strokeRect(point.x - size, point.y - size * 0.75, size * 2, size * 1.5);
+        }
+        ctx.restore();
+      }
+    }
+
     drawMapTraps(ctx, toPoint, scale = 1) {
       for (const trap of this.game.traps || []) {
         ctx.save();
@@ -935,7 +1040,6 @@
         }
         ctx.restore();
       }
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
     }
 
     showNotification(text, type = "normal", duration = 3000) {

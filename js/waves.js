@@ -52,11 +52,12 @@
     beginIntermission() {
       this.state = "intermission";
       const mode = this.game.getModeSettings?.() || {};
-      this.nextWaveDelay = mode.intermissionDelay ?? 8;
+      const traderWave = this.game.isTraderWave?.() || false;
+      this.nextWaveDelay = traderWave ? Math.max(24, (mode.intermissionDelay ?? 8) + 16) : mode.intermissionDelay ?? 8;
       this.game.state = "intermission";
       this.game.ui.setMode("intermission");
       const locationName = this.game.pendingLocationName ? ` - next: ${this.game.pendingLocationName}` : "";
-      this.game.ui.showNotification(`Wave ${this.wave} cleared${locationName}`, "accent", 2600);
+      this.game.ui.showNotification(traderWave ? `Trader arrived after wave ${this.wave}` : `Wave ${this.wave} cleared${locationName}`, "accent", 2600);
       this.game.ui.openShop();
       this.game.audio.playSfx("ui");
       this.game.addCoins(60 + this.wave * 20);

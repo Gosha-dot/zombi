@@ -217,6 +217,7 @@
             <h2 class="panel__title">Upgrade Shop</h2>
           </div>
           <div class="shop-meta">
+            <span id="traderText" class="shop-meta__trader" hidden>Trader caravan</span>
             <span id="waveCountdownText" class="shop-meta__count">00:00</span>
             <button id="startNextWaveBtn" class="btn btn--primary">Start Next Wave</button>
           </div>
@@ -260,6 +261,17 @@
           </div>
           <div id="questsList" class="quests-list"></div>
         </div>
+      </section>
+
+      <section id="inventoryPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Loadout</p>
+            <h2 class="panel__title">Inventory</h2>
+          </div>
+          <button id="closeInventoryBtn" class="btn btn--ghost">Close</button>
+        </div>
+        <div id="inventoryBody" class="panel__body inventory-grid"></div>
       </section>
 
       <section id="gameOverPanel" class="panel panel--modal panel--hidden" aria-hidden="true">

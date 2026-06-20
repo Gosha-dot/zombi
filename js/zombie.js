@@ -522,15 +522,11 @@
       const wobble = Math.sin(this.wiggle + this.game.worldTime * 2.2) * (this.type === "runner" ? 0.12 : 0.06);
       let moveX = directionX + (-directionY * wobble);
       let moveY = directionY + (directionX * wobble);
-<<<<<<< HEAD
       let speed = this.speed * freezeFactor * ZOMBIE_SPEED_MULTIPLIER;
-=======
-      let speed = this.speed * freezeFactor;
       if (this.trapSlowFactor) {
         speed *= GameUtils.clamp(this.trapSlowFactor, 0.28, 1);
         this.trapSlowFactor = 1;
       }
->>>>>>> 73cd0620a8a332371cfece150fa302e64069abf8
 
       if (this.type === "runner") {
         speed *= 1.02 + Math.sin(this.game.worldTime * 4 + this.wiggle) * 0.04;
