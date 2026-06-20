@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "zombi",
+			"path": "."
+		},
+		{
+			"name": "js",
+			"path": "../../../Робочий стіл/zombi/js"
+		},
+		{
+			"name": "assets",
+			"path": "../../../Робочий стіл/zombi/assets"
+		},
+		{
+			"name": "css",
+			"path": "../../../Робочий стіл/zombi/css"
+		}
+	],
+	"settings": {}
+}
