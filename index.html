@@ -81,6 +81,18 @@
             <button id="openLeaderboardBtn" class="btn">Leaderboard</button>
             <button id="openSettingsBtn" class="btn">Settings</button>
           </div>
+          <div class="mode-picker" aria-label="Game mode">
+            <span class="hud__label">Mode</span>
+            <div id="modeButtons" class="mode-picker__buttons">
+              <button class="mode-chip" type="button" data-game-mode="easy">Easy</button>
+              <button class="mode-chip" type="button" data-game-mode="normal">Normal</button>
+              <button class="mode-chip" type="button" data-game-mode="hardcore">Hardcore</button>
+              <button class="mode-chip" type="button" data-game-mode="oneHp">One HP</button>
+              <button class="mode-chip" type="button" data-game-mode="bossRush">Boss Rush</button>
+              <button class="mode-chip" type="button" data-game-mode="endlessNight">Endless Night</button>
+            </div>
+            <p id="modeDescription" class="mode-picker__description">Balanced outbreak conditions.</p>
+          </div>
           <div class="menu-stats">
             <div class="menu-stats__item">
               <span class="hud__label">Best Score</span>
@@ -107,6 +119,7 @@
             <thead>
               <tr>
                 <th>Player</th>
+                <th>Mode</th>
                 <th>Score</th>
                 <th>Waves</th>
                 <th>Kills</th>
@@ -132,6 +145,17 @@
             <input id="playerNameInput" type="text" maxlength="16" placeholder="Survivor">
           </label>
           <label class="field">
+            <span>Game Mode</span>
+            <select id="gameModeInput">
+              <option value="easy">Easy</option>
+              <option value="normal">Normal</option>
+              <option value="hardcore">Hardcore</option>
+              <option value="oneHp">One HP</option>
+              <option value="bossRush">Boss Rush</option>
+              <option value="endlessNight">Endless Night</option>
+            </select>
+          </label>
+          <label class="field">
             <span>Sound Volume</span>
             <input id="soundVolumeInput" type="range" min="0" max="100" value="70">
           </label>
@@ -147,6 +171,42 @@
             <input id="bloodEffectsInput" type="checkbox" checked>
             <span>Blood Effects</span>
           </label>
+        </div>
+      </section>
+
+      <section id="tutorialPanel" class="panel panel--modal panel--hidden" aria-hidden="true">
+        <div class="panel__header">
+          <div>
+            <p class="eyebrow">Field briefing</p>
+            <h2 class="panel__title">Survival Basics</h2>
+          </div>
+          <button id="startFirstWaveBtn" class="btn btn--primary">Start First Wave</button>
+        </div>
+        <div class="panel__body tutorial-grid">
+          <article class="tutorial-card">
+            <strong>Move and fight</strong>
+            <span>Use WASD, aim with the mouse, reload with R, dash with Shift, and throw grenades with H or right click.</span>
+          </article>
+          <article class="tutorial-card">
+            <strong>Use tactical tools</strong>
+            <span>Press G for the full map and N for night vision when fog or darkness hides the horde.</span>
+          </article>
+          <article class="tutorial-card">
+            <strong>Open locked routes</strong>
+            <span>Kill the keycard carrier, unlock the security door with F, then pull the lever to activate the next-level pad.</span>
+          </article>
+          <article class="tutorial-card">
+            <strong>Exploit traps</strong>
+            <span>Barrels explode when shot, wire slows zombies, generators arc electricity, and turrets fire on nearby enemies.</span>
+          </article>
+          <article class="tutorial-card">
+            <strong>Spend between waves</strong>
+            <span>Use the shop after a cleared wave to buy weapons, modules, armor, ammo, grenades, and movement upgrades.</span>
+          </article>
+          <article class="tutorial-card">
+            <strong>Know the run</strong>
+            <span id="tutorialModeText">Normal mode keeps enemies, rewards, and breaks balanced.</span>
+          </article>
         </div>
       </section>
 

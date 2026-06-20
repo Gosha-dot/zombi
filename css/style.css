@@ -209,9 +209,62 @@ body::after {
   margin-top: 12px;
 }
 
+.mode-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 14px;
+  border: 1px solid rgba(181, 255, 199, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(3, 8, 6, 0.36);
+}
+
+.mode-picker .hud__label {
+  margin-bottom: 0;
+}
+
+.mode-picker__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mode-chip {
+  min-height: 38px;
+  padding: 10px 12px;
+  border: 1px solid rgba(181, 255, 199, 0.14);
+  border-radius: 999px;
+  background: rgba(6, 12, 9, 0.78);
+  color: var(--text);
+  font: 800 0.76rem/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mode-chip:hover,
+.mode-chip:focus-visible {
+  border-color: rgba(103, 240, 167, 0.42);
+  outline: none;
+}
+
+.mode-chip--active {
+  background: linear-gradient(180deg, rgba(103, 240, 167, 0.95), rgba(24, 140, 84, 0.92));
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #02110b;
+}
+
+.mode-picker__description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .menu-stats__item,
 .summary-card,
 .shop-card,
+.tutorial-card,
 .hud__missions,
 .hud__card {
   background: linear-gradient(180deg, rgba(11, 22, 17, 0.92), rgba(5, 10, 8, 0.95));
@@ -594,11 +647,13 @@ body::after {
 }
 
 .field input[type="text"],
-.field input[type="range"] {
+.field input[type="range"],
+.field select {
   width: 100%;
 }
 
-.field input[type="text"] {
+.field input[type="text"],
+.field select {
   background: rgba(4, 8, 6, 0.9);
   border: 1px solid rgba(181, 255, 199, 0.14);
   border-radius: 12px;
@@ -608,7 +663,8 @@ body::after {
   outline: none;
 }
 
-.field input[type="text"]:focus {
+.field input[type="text"]:focus,
+.field select:focus {
   border-color: rgba(103, 240, 167, 0.45);
   box-shadow: 0 0 0 3px rgba(103, 240, 167, 0.12);
 }
@@ -817,6 +873,30 @@ body::after {
   text-transform: uppercase;
 }
 
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.tutorial-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.tutorial-card strong {
+  color: var(--accent);
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tutorial-card span {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .summary-card {
   padding: 16px;
   display: grid;
@@ -989,7 +1069,8 @@ body::after {
 @media (max-width: 980px) {
   .settings-grid,
   .gameover-grid,
-  .shop-grid {
+  .shop-grid,
+  .tutorial-grid {
     grid-template-columns: 1fr;
   }
 

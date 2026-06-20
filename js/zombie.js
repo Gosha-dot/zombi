@@ -256,6 +256,12 @@
         this.speed = this.base.speed * speedScale;
         this.damage = Math.round(this.base.damage * damageScale);
       }
+
+      const mode = this.game.getModeSettings?.() || {};
+      this.maxHp = Math.max(1, Math.round(this.maxHp * (mode.enemyHpMult || 1)));
+      this.hp = this.maxHp;
+      this.speed *= mode.enemySpeedMult || 1;
+      this.damage = Math.max(1, Math.round(this.damage * (mode.enemyDamageMult || 1)));
     }
 
     getHeadPosition() {
@@ -452,6 +458,10 @@
       let moveX = directionX + (-directionY * wobble);
       let moveY = directionY + (directionX * wobble);
       let speed = this.speed * freezeFactor;
+      if (this.trapSlowFactor) {
+        speed *= GameUtils.clamp(this.trapSlowFactor, 0.28, 1);
+        this.trapSlowFactor = 1;
+      }
 
       if (this.type === "runner") {
         speed *= 1.08 + Math.sin(this.game.worldTime * 4 + this.wiggle) * 0.05;

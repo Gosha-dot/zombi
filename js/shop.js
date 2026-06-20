@@ -280,7 +280,19 @@
       return Math.round(item.baseCost * Math.pow(item.growth, level));
     }
 
+    isLockedByMode(item) {
+      return Boolean(this.game.getModeSettings?.().oneHp && [
+        "health.maxHp",
+        "health.regen",
+        "defense.armor",
+        "defense.reduction"
+      ].includes(item.id));
+    }
+
     canBuy(item) {
+      if (this.isLockedByMode(item)) {
+        return false;
+      }
       const level = this.getLevel(item.id);
       if (level >= item.maxLevel) {
         return false;
@@ -305,6 +317,10 @@
       const level = this.getLevel(id);
       if (level >= item.maxLevel) {
         return { ok: false, reason: "Max level" };
+      }
+
+      if (this.isLockedByMode(item)) {
+        return { ok: false, reason: "Locked in One HP" };
       }
 
       const cost = this.getCost(item);
@@ -376,20 +392,24 @@
               const level = this.getLevel(item.id);
               const cost = this.getCost(item);
               const isModule = item.kind === "module";
+              const lockedByMode = this.isLockedByMode(item);
               return {
                 ...item,
                 level,
                 cost,
-                affordable: this.game.coins >= cost && !(item.kind === "resource" && (
+                lockedByMode,
+                affordable: !lockedByMode && this.game.coins >= cost && !(item.kind === "resource" && (
                   (item.resourceKey === "ammo" && this.game.player.ammoReserve >= 100) ||
                   (item.resourceKey === "grenade" && this.game.player.grenadeCount >= this.game.player.maxGrenades)
                 )),
-                maxed: item.kind === "resource"
+                maxed: lockedByMode ? true : item.kind === "resource"
                   ? (item.resourceKey === "ammo"
                     ? this.game.player.ammoReserve >= 100
                     : this.game.player.grenadeCount >= this.game.player.maxGrenades)
                   : level >= item.maxLevel,
-                previewText: item.kind === "resource"
+                previewText: lockedByMode
+                  ? "Locked in One HP"
+                  : item.kind === "resource"
                   ? item.resourceKey === "ammo"
                     ? `Reserve ${Math.ceil(this.game.player.ammoReserve)}/100`
                     : `Grenades ${Math.ceil(this.game.player.grenadeCount)}/${this.game.player.maxGrenades}`

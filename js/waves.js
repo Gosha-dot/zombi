@@ -23,14 +23,16 @@
     }
 
     beginWave() {
+      const mode = this.game.getModeSettings?.() || {};
       this.wave += 1;
       this.state = "active";
-      this.bossWave = this.wave % 5 === 0;
+      this.bossWave = Boolean(mode.bossEveryWave) || this.wave % 5 === 0;
       this.keyCarrierAssigned = false;
       this.game.resetLevelState(true);
       this.game.pendingLocationName = null;
       this.spawned = 0;
-      this.totalToSpawn = this.bossWave ? Math.max(5, Math.round(4 + this.wave * 0.4)) : Math.round(7 + this.wave * 2.6);
+      const baseTotal = this.bossWave ? Math.max(5, Math.round(4 + this.wave * 0.4)) : Math.round(7 + this.wave * 2.6);
+      this.totalToSpawn = Math.max(this.bossWave ? 3 : 4, Math.round(baseTotal * (mode.spawnCountMult || 1)));
       this.spawnTimer = this.bossWave ? 0.9 : 0.45;
 
       this.game.player.refillAmmo();
@@ -49,7 +51,8 @@
 
     beginIntermission() {
       this.state = "intermission";
-      this.nextWaveDelay = 8;
+      const mode = this.game.getModeSettings?.() || {};
+      this.nextWaveDelay = mode.intermissionDelay ?? 8;
       this.game.state = "intermission";
       this.game.ui.setMode("intermission");
       const locationName = this.game.pendingLocationName ? ` - next: ${this.game.pendingLocationName}` : "";
@@ -57,7 +60,7 @@
       this.game.ui.openShop();
       this.game.audio.playSfx("ui");
       this.game.addCoins(60 + this.wave * 20);
-      this.game.stats.score += 120 + this.wave * 45;
+      this.game.stats.score += Math.round((120 + this.wave * 45) * (this.game.getModeSettings?.().scoreMult || 1));
       this.game.stats.waves = this.wavesCleared;
     }
 
@@ -295,7 +298,9 @@
       }
 
       this.spawnTimer -= dt;
-      const spawnInterval = this.bossWave ? Math.max(0.32, 0.82 - this.wave * 0.02) : Math.max(0.28, 0.95 - this.wave * 0.03);
+      const mode = this.game.getModeSettings?.() || {};
+      const intervalMult = mode.spawnIntervalMult || 1;
+      const spawnInterval = (this.bossWave ? Math.max(0.32, 0.82 - this.wave * 0.02) : Math.max(0.28, 0.95 - this.wave * 0.03)) * intervalMult;
 
       while (this.spawnTimer <= 0 && this.spawned < this.totalToSpawn) {
         this.spawnZombie();
