@@ -128,6 +128,39 @@
     }
   };
 
+  const WEATHER_DEFS = {
+    clear: {
+      key: "clear",
+      label: "Clear Sky",
+      icon: "CLR",
+      mapDetectMult: 1,
+      visibilityMult: 1,
+      spreadMult: 1,
+      particleKind: "ash",
+      intensityMult: 0.72
+    },
+    fog: {
+      key: "fog",
+      label: "Fog",
+      icon: "FOG",
+      mapDetectMult: 0.42,
+      visibilityMult: 0.36,
+      spreadMult: 1,
+      particleKind: "fog",
+      intensityMult: 1.08
+    },
+    rain: {
+      key: "rain",
+      label: "Rain",
+      icon: "RN",
+      mapDetectMult: 0.82,
+      visibilityMult: 0.9,
+      spreadMult: 1.32,
+      particleKind: "rain",
+      intensityMult: 0.95
+    }
+  };
+
   class AudioManager {
     constructor(game) {
       this.game = game;
@@ -547,6 +580,11 @@
       this.nightVisionActive = false;
       this.nightVisionTimer = 0;
       this.nightVisionCooldown = 0;
+      this.weatherState = { key: "clear" };
+      this.trapBoostMult = 1;
+      this.trapBoostLevel = 0;
+      this.allyDamageBoost = 1;
+      this.deployableTurrets = [];
       this.atmosphere = this.createAtmosphereState();
       this.lastFrame = performance.now();
 
@@ -560,6 +598,7 @@
       this.player = new Player(this);
       this.waveManager = new WaveManager(this);
       this.missions = new MissionManager(this);
+      this.allies = new AllyManager(this);
       this.ui = new UIManager(this);
       this.worldLayout = this.createWorldLayout();
 
@@ -1151,6 +1190,100 @@
       return true;
     }
 
+    getPlayerClassKey() {
+      return this.settings.playerClass in global.PLAYER_CLASS_DEFS ? this.settings.playerClass : "assault";
+    }
+
+    setPlayerClass(classKey) {
+      if (!(classKey in global.PLAYER_CLASS_DEFS)) {
+        return false;
+      }
+
+      this.settings.playerClass = classKey;
+      this.saveSettings();
+      if (this.player) {
+        this.player.classKey = classKey;
+        if (classKey === "engineer") {
+          this.player.deployTurretCharges = global.PLAYER_CLASS_DEFS.engineer.deployTurretCharges || 0;
+        }
+      }
+      return true;
+    }
+
+    getPlayerClassSettings() {
+      return global.PLAYER_CLASS_DEFS[this.getPlayerClassKey()] || global.PLAYER_CLASS_DEFS.assault;
+    }
+
+    getWeatherSettings() {
+      return WEATHER_DEFS[this.weatherState?.key] || WEATHER_DEFS.clear;
+    }
+
+    rollWeatherForWave(wave) {
+      const roll = Math.random();
+      let key = "clear";
+      if (wave % 4 === 0) {
+        key = roll < 0.45 ? "fog" : roll < 0.78 ? "rain" : "clear";
+      } else if (wave % 3 === 0) {
+        key = roll < 0.34 ? "fog" : roll < 0.58 ? "rain" : "clear";
+      } else if (roll < 0.12) {
+        key = "fog";
+      } else if (roll < 0.22) {
+        key = "rain";
+      }
+
+      const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
+      if (mode.key === "endlessNight" && roll < 0.55) {
+        key = "fog";
+      }
+
+      this.weatherState = { key: key in WEATHER_DEFS ? key : "clear" };
+      this.atmosphere = this.createAtmosphereState();
+    }
+
+    getEngineerTrapMult() {
+      const classDef = this.player?.getClassKey?.() === "engineer" ? global.PLAYER_CLASS_DEFS.engineer : null;
+      return (classDef?.trapDamageMult || 1) * (this.trapBoostMult || 1);
+    }
+
+    getEngineerTrapRangeMult() {
+      const classDef = this.player?.getClassKey?.() === "engineer" ? global.PLAYER_CLASS_DEFS.engineer : null;
+      return classDef?.trapRangeMult || 1;
+    }
+
+    getVisibilityRadius() {
+      const weather = this.getWeatherSettings();
+      const base = Math.max(this.width, this.height) * 0.52;
+      let radius = base * (weather.visibilityMult || 1);
+      const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
+      radius *= 1 / (mode.fogMult || 1);
+      if (this.nightVisionActive && this.weatherState?.key === "fog") {
+        radius = GameUtils.lerp(radius, base * 0.88, 0.58);
+      } else if (this.nightVisionActive) {
+        radius *= 1.12;
+      }
+      return GameUtils.clamp(radius, base * 0.22, base * 1.05);
+    }
+
+    getMapDetectionRadius() {
+      const weather = this.getWeatherSettings();
+      const base = Math.max(this.width, this.height) * 0.46;
+      let radius = base * (weather.mapDetectMult || 1);
+      if (this.nightVisionActive && this.weatherState?.key === "fog") {
+        radius = GameUtils.lerp(radius, base * 0.92, 0.62);
+      } else if (this.nightVisionActive) {
+        radius *= 1.08;
+      }
+      return radius;
+    }
+
+    getWeatherSpreadMult() {
+      return this.getWeatherSettings().spreadMult || 1;
+    }
+
+    canDetectOnMap(x, y) {
+      return GameUtils.distance(this.player.x, this.player.y, x, y) <= this.getMapDetectionRadius();
+    }
+
     advanceLocation() {
       if (!this.locations.length) {
         this.pendingLocationName = null;
@@ -1365,12 +1498,14 @@
             slow: 0.46
           });
         } else if (trap.type === "turret") {
+          const trapMult = this.getEngineerTrapMult();
+          const rangeMult = this.getEngineerTrapRangeMult();
           addTrap({
             ...trap,
             id: `${locationKey}-${trap.id}`,
             radius: Math.max(17, Math.round(shortSide * 0.023)),
-            range: Math.max(260, Math.round(shortSide * 0.42)),
-            damage: 18,
+            range: Math.max(260, Math.round(shortSide * 0.42)) * rangeMult,
+            damage: 18 * trapMult,
             cooldown: 0.15,
             fireRate: 0.42
           });
@@ -1385,8 +1520,8 @@
           x: generator.x + generator.w * 0.5,
           y: generator.y + generator.h * 0.5,
           radius: Math.max(20, Math.round(shortSide * 0.028)),
-          range: Math.max(132, Math.round(shortSide * 0.18)),
-          damage: 24,
+          range: Math.max(132, Math.round(shortSide * 0.18)) * this.getEngineerTrapRangeMult(),
+          damage: 24 * this.getEngineerTrapMult(),
           cooldown: 0.7,
           fireRate: 2.3
         });
@@ -1504,8 +1639,9 @@
       const wave = this.waveManager?.wave || 1;
       const location = this.getCurrentLocation();
       const mode = this.getModeSettings?.() || GAME_MODE_DEFS.normal;
-      const kind = location?.weather || (wave % 6 === 0 ? "rain" : wave % 3 === 0 ? "fog" : "ash");
-      const atmosphereDensity = (location?.atmosphereDensity || location?.fogDensity || 1) * (mode.fogMult || 1);
+      const weather = this.getWeatherSettings();
+      const kind = weather.particleKind || location?.weather || "ash";
+      const atmosphereDensity = (location?.atmosphereDensity || location?.fogDensity || 1) * (mode.fogMult || 1) * (weather.intensityMult || 1);
       return {
         kind,
         intensity: GameUtils.clamp((0.42 + wave * 0.025) * atmosphereDensity, 0.38, 1),
@@ -1688,6 +1824,175 @@
       return true;
     }
 
+    tryRescueAlly() {
+      return Boolean(this.allies?.tryRescue());
+    }
+
+    tryDeployTurret() {
+      if (this.state !== "playing" && this.state !== "intermission") {
+        return false;
+      }
+      if ((this.player.deployTurretCharges || 0) <= 0) {
+        this.ui.showNotification("No turret charges", "normal", 1400);
+        return false;
+      }
+
+      const classDef = this.player.getClassKey() === "engineer"
+        ? global.PLAYER_CLASS_DEFS.engineer
+        : {
+          deployTurretDuration: 38,
+          deployTurretHp: 65,
+          deployTurretDamage: 16,
+          deployTurretRange: 250
+        };
+      const aim = this.player.getAimVector();
+      const offset = this.player.radius + 28;
+      const x = GameUtils.clamp(this.player.x + aim.x * offset, 40, this.width - 40);
+      const y = GameUtils.clamp(this.player.y + aim.y * offset, 40, this.height - 40);
+
+      this.player.deployTurretCharges -= 1;
+      this.deployableTurrets.push({
+        x,
+        y,
+        radius: 16,
+        hp: classDef.deployTurretHp || 65,
+        maxHp: classDef.deployTurretHp || 65,
+        range: (classDef.deployTurretRange || 250) * this.getEngineerTrapRangeMult(),
+        damage: (classDef.deployTurretDamage || 16) * this.getEngineerTrapMult(),
+        cooldown: 0,
+        fireRate: 0.38,
+        life: classDef.deployTurretDuration || 38,
+        flash: 0,
+        pulse: Math.random() * Math.PI * 2,
+        angle: Math.atan2(aim.y, aim.x)
+      });
+
+      this.floaters.add("TURRET", x, y - 18, "#8dc3ff", {
+        life: 0.75,
+        scale: 0.92,
+        velocityY: -22
+      });
+      this.ui.showNotification("Turret deployed", "accent", 1800);
+      this.audio.playSfx("ui");
+      return true;
+    }
+
+    updateDeployableTurrets(dt) {
+      if (!this.deployableTurrets.length) {
+        return;
+      }
+
+      this.deployableTurrets = this.deployableTurrets.filter((turret) => {
+        turret.life -= dt;
+        turret.cooldown = Math.max(0, turret.cooldown - dt);
+        turret.flash = Math.max(0, turret.flash - dt);
+        turret.pulse += dt * 3;
+
+        if (turret.life <= 0 || turret.hp <= 0) {
+          return false;
+        }
+
+        for (const zombie of this.zombies) {
+          if (!zombie.alive) {
+            continue;
+          }
+          if (GameUtils.distance(turret.x, turret.y, zombie.x, zombie.y) <= turret.radius + zombie.radius + 2) {
+            turret.hp -= zombie.damage * 0.35 * dt * 2.2;
+          }
+        }
+
+        if (turret.cooldown <= 0) {
+          const target = this.zombies
+            .filter((zombie) => zombie.alive && GameUtils.distance(turret.x, turret.y, zombie.x, zombie.y) <= turret.range)
+            .sort((left, right) => GameUtils.distance(turret.x, turret.y, left.x, left.y) - GameUtils.distance(turret.x, turret.y, right.x, right.y))[0];
+
+          if (target) {
+            const angle = Math.atan2(target.y - turret.y, target.x - turret.x);
+            const speed = 980;
+            turret.angle = angle;
+            turret.cooldown = turret.fireRate;
+            turret.flash = 0.14;
+            this.spawnBullet({
+              x: turret.x + Math.cos(angle) * (turret.radius + 8),
+              y: turret.y + Math.sin(angle) * (turret.radius + 8),
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              radius: 2.7,
+              damage: turret.damage,
+              color: "#8dc3ff",
+              pierce: 0,
+              critChance: 0,
+              angle,
+              life: 0.8,
+              weaponKey: "turret"
+            });
+            this.particles.sparks(turret.x + Math.cos(angle) * turret.radius, turret.y + Math.sin(angle) * turret.radius, 3, "#8dc3ff");
+            this.audio.playSfx("shoot");
+          }
+        }
+
+        return turret.hp > 0 && turret.life > 0;
+      });
+    }
+
+    drawDeployableTurrets(ctx) {
+      for (const turret of this.deployableTurrets) {
+        ctx.save();
+        ctx.translate(turret.x, turret.y);
+        ctx.rotate(turret.angle || 0);
+
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.beginPath();
+        ctx.ellipse(0, 10, turret.radius * 1.1, turret.radius * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#1a3040";
+        ctx.beginPath();
+        ctx.arc(0, 0, turret.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#8dc3ff";
+        ctx.fillRect(4, -4, turret.radius + 8, 8);
+
+        if (turret.flash > 0) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.fillStyle = `rgba(141, 195, 255, ${turret.flash * 0.5})`;
+          ctx.beginPath();
+          ctx.arc(turret.radius + 10, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        const hpPct = Math.max(0, turret.hp / turret.maxHp);
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.fillRect(turret.x - 14, turret.y - turret.radius - 14, 28, 3);
+        ctx.fillStyle = "#8dc3ff";
+        ctx.fillRect(turret.x - 14, turret.y - turret.radius - 14, 28 * hpPct, 3);
+      }
+    }
+
+    drawFogVignette(ctx) {
+      if (this.weatherState?.key !== "fog") {
+        return;
+      }
+      if (this.state !== "playing" && this.state !== "intermission") {
+        return;
+      }
+
+      const radius = this.getVisibilityRadius();
+      const cx = this.player.x;
+      const cy = this.player.y;
+      const gradient = ctx.createRadialGradient(cx, cy, radius * 0.18, cx, cy, radius);
+      gradient.addColorStop(0, "rgba(0,0,0,0)");
+      gradient.addColorStop(0.55, "rgba(2, 8, 5, 0.18)");
+      gradient.addColorStop(1, "rgba(1, 4, 2, 0.82)");
+      ctx.save();
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, this.width, this.height);
+      ctx.restore();
+    }
+
     tryOpenDoor() {
       if (!this.canOpenDoor()) {
         if (!this.doorOpen && this.player.keycards > 0 && this.getDoorDistance() < 150) {
@@ -1750,6 +2055,7 @@
       const defaults = {
         playerName: "Survivor",
         gameMode: "normal",
+        playerClass: "assault",
         soundVolume: 0.7,
         musicVolume: 0.35,
         screenShake: true,
@@ -1766,6 +2072,7 @@
           ...defaults,
           ...parsed,
           gameMode: parsed.gameMode in GAME_MODE_DEFS ? parsed.gameMode : defaults.gameMode,
+          playerClass: parsed.playerClass in global.PLAYER_CLASS_DEFS ? parsed.playerClass : defaults.playerClass,
           soundVolume: GameUtils.clamp(Number(parsed.soundVolume ?? defaults.soundVolume), 0, 1),
           musicVolume: GameUtils.clamp(Number(parsed.musicVolume ?? defaults.musicVolume), 0, 1)
         };
@@ -1859,8 +2166,14 @@
             break;
           case "KeyF":
             event.preventDefault();
-            if (!this.tryPullLever() && !this.tryOpenDoor() && !this.tryOpenLootContainer()) {
+            if (!this.tryPullLever() && !this.tryOpenDoor() && !this.tryRescueAlly() && !this.tryOpenLootContainer()) {
               this.tryBuyAmmoFromBox();
+            }
+            break;
+          case "KeyQ":
+            event.preventDefault();
+            if (!event.repeat) {
+              this.tryDeployTurret();
             }
             break;
           case "KeyG":
@@ -1967,6 +2280,8 @@
         this.updateTraps(dt);
         this.updateZombies(dt);
         this.updatePickups(dt);
+        this.allies.update(dt);
+        this.updateDeployableTurrets(dt);
         this.missions.update(dt);
         this.waveManager.update(dt);
         this.checkLevelTrigger();
@@ -2099,6 +2414,18 @@
           ctx.moveTo(x, y);
           ctx.lineTo(x - wind * 0.18, y + length);
           ctx.stroke();
+        }
+      } else if (kind === "fog") {
+        const count = Math.round(38 * intensity * atmosphereDensity);
+        for (let i = 0; i < count; i += 1) {
+          const seed = i * 43.7;
+          const x = ((seed * 11.4 + this.worldTime * wind * 2.2) % (this.width + 180)) - 90;
+          const y = ((seed * 19.8 + this.worldTime * 22) % (this.height + 180)) - 90;
+          const size = 18 + (i % 4) * 12;
+          ctx.fillStyle = `rgba(186, 214, 198, ${0.015 + intensity * 0.02})`;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
         }
       } else {
         const count = Math.round(54 * intensity * atmosphereDensity);
@@ -2968,6 +3295,9 @@
       for (const bullet of this.enemyBullets) {
         this.drawEnemyBullet(ctx, bullet);
       }
+
+      this.drawDeployableTurrets(ctx);
+      this.allies.draw(ctx);
     }
 
     drawBullet(ctx, bullet) {
@@ -3118,6 +3448,7 @@
       }
 
       this.drawWeather(ctx);
+      this.drawFogVignette(ctx);
 
       if (this.player.lastDamageAngle !== 0 && this.player.hp > 0 && this.player.damageFlash > 0) {
         const alpha = GameUtils.clamp(this.player.damageFlash * 1.6, 0, 1);
@@ -3174,6 +3505,14 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         ctx.fillText("Press F to pull the lever", this.width * 0.5, this.height - 44);
+        ctx.restore();
+      } else if (this.allies?.canRescue()) {
+        ctx.save();
+        ctx.fillStyle = "rgba(103, 240, 167, 0.95)";
+        ctx.font = "700 18px Bahnschrift, Trebuchet MS, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("Press F to rescue the survivor", this.width * 0.5, this.height - 18);
         ctx.restore();
       } else if (this.canOpenDoor()) {
         ctx.save();
@@ -3709,7 +4048,7 @@
       this.waveManager.startRun();
       this.state = "playing";
       this.ui.setMode("playing");
-      this.ui.showNotification(`${this.getModeSettings().name} mode`, "accent", 1800);
+      this.ui.showNotification(`${this.getModeSettings().name} mode · ${this.getPlayerClassSettings().name}`, "accent", 1800);
       this.audio.playSfx("ui");
       return true;
     }
@@ -3732,6 +4071,13 @@
       this.nightVisionActive = false;
       this.nightVisionTimer = 0;
       this.nightVisionCooldown = 0;
+      this.weatherState = { key: "clear" };
+      this.trapBoostMult = 1;
+      this.trapBoostLevel = 0;
+      this.allyDamageBoost = 1;
+      this.deployableTurrets = [];
+      this.deployTurretPurchases = 0;
+      this.allies.reset();
       this.player.reset();
       this.player.hp = this.player.getMaxHp();
       this.bonuses.reset();
@@ -3753,6 +4099,13 @@
       this.nightVisionActive = false;
       this.nightVisionTimer = 0;
       this.nightVisionCooldown = 0;
+      this.weatherState = { key: "clear" };
+      this.trapBoostMult = 1;
+      this.trapBoostLevel = 0;
+      this.allyDamageBoost = 1;
+      this.deployableTurrets = [];
+      this.deployTurretPurchases = 0;
+      this.allies.reset();
       this.player.reset();
       this.player.hp = this.player.getMaxHp();
       this.bonuses.reset();
@@ -3782,6 +4135,7 @@
 
   global.GameUtils = GameUtils;
   global.GAME_MODE_DEFS = GAME_MODE_DEFS;
+  global.WEATHER_DEFS = WEATHER_DEFS;
   global.AudioManager = AudioManager;
   global.ParticleSystem = ParticleSystem;
   global.FloatingTextManager = FloatingTextManager;

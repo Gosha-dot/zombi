@@ -215,6 +215,33 @@
       apply: (player) => player.addAmmo(100)
     },
     {
+      id: "engineer.deployTurret",
+      category: "Field Gear",
+      kind: "deployTurret",
+      name: "Deploy Turret",
+      description: "Place a temporary auto-turret near your position. Engineers get stronger and cheaper turrets.",
+      baseCost: 145,
+      growth: 1.18,
+      maxLevel: 4,
+      preview: (level) => `Charges +1 (${level + 1} bought)`,
+      apply: (player) => {
+        player.deployTurretCharges = (player.deployTurretCharges || 0) + 1;
+        return 1;
+      }
+    },
+    {
+      id: "engineer.trapBoost",
+      category: "Field Gear",
+      kind: "trapBoost",
+      name: "Trap Overcharge",
+      description: "Boost trap and generator damage for the next wave.",
+      baseCost: 160,
+      growth: 1.35,
+      maxLevel: 3,
+      preview: (level) => `Trap damage +${Math.round((level + 1) * 12)}% next wave`,
+      apply: () => true
+    },
+    {
       id: "movement.speed",
       category: "Movement",
       name: "Speed +",
@@ -334,6 +361,12 @@
       if (item?.kind === "skill") {
         return player.getSkillLevel(item.skillKey);
       }
+      if (item?.kind === "deployTurret") {
+        return this.game.deployTurretPurchases || 0;
+      }
+      if (item?.kind === "trapBoost") {
+        return this.game.trapBoostLevel || 0;
+      }
       if (item?.kind === "resource") {
         if (item.resourceKey === "ammo") {
           return player.ammoReserve >= 100 ? 1 : 0;
@@ -373,7 +406,16 @@
         return item.skillCost || 1;
       }
       const level = this.getLevel(item.id);
-      return Math.round(item.baseCost * Math.pow(item.growth, level));
+      let cost = Math.round(item.baseCost * Math.pow(item.growth, level));
+      const classKey = this.game.player?.getClassKey?.();
+      const classDef = global.PLAYER_CLASS_DEFS?.[classKey];
+      if (classKey === "assault" && item.id === "supplies.ammo" && classDef?.ammoUpgradeCostMult) {
+        cost = Math.round(cost * classDef.ammoUpgradeCostMult);
+      }
+      if (classKey === "engineer" && (item.kind === "deployTurret" || item.kind === "trapBoost") && classDef?.trapCostMult) {
+        cost = Math.round(cost * classDef.trapCostMult);
+      }
+      return cost;
     }
 
     isLockedByMode(item) {
@@ -414,6 +456,12 @@
     }
 
     isMaxed(item, level = this.getLevel(item.id)) {
+      if (item.kind === "trapBoost") {
+        return (this.game.trapBoostLevel || 0) >= item.maxLevel;
+      }
+      if (item.kind === "deployTurret") {
+        return (this.game.deployTurretPurchases || 0) >= item.maxLevel;
+      }
       if (item.kind === "resource") {
         return item.resourceKey === "ammo"
           ? this.game.player.ammoReserve >= 100
@@ -513,7 +561,15 @@
       }
 
       const applied = item.apply(this.game.player);
-      if (item.kind === "weaponUnlock" && !applied) {
+      if (item.kind === "deployTurret") {
+        if (!applied) {
+          return { ok: false, reason: "Unavailable" };
+        }
+        this.game.deployTurretPurchases = (this.game.deployTurretPurchases || 0) + 1;
+      } else if (item.kind === "trapBoost") {
+        this.game.trapBoostLevel = (this.game.trapBoostLevel || 0) + 1;
+        this.game.trapBoostMult = 1 + this.game.trapBoostLevel * 0.12;
+      } else if (item.kind === "weaponUnlock" && !applied) {
         return { ok: false, reason: "Already owned" };
       }
       if (item.kind === "module" && (!applied || !applied.ok)) {

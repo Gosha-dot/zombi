@@ -219,6 +219,16 @@ body::after {
   background: rgba(3, 8, 6, 0.36);
 }
 
+.class-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 14px;
+  border: 1px solid rgba(141, 195, 255, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(3, 8, 10, 0.36);
+}
+
 .mode-picker .hud__label {
   margin-bottom: 0;
 }
@@ -315,6 +325,22 @@ body::after {
 
 .hud__card--keycard .hud__value {
   color: var(--warning);
+}
+
+.hud__card--class .hud__value {
+  color: #8dc3ff;
+}
+
+.hud__card--weather .hud__value {
+  color: #b8ffd8;
+}
+
+.hud__card--ally .hud__value {
+  color: #ffe38a;
+}
+
+.hud__card--ally.hud__card--dead .hud__value {
+  color: var(--danger);
 }
 
 .hud__label {

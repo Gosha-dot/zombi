@@ -1,4 +1,45 @@
 (function (global) {
+  const PLAYER_CLASS_DEFS = {
+    medic: {
+      key: "medic",
+      name: "Medic",
+      description: "Passive HP regen, stronger medkits, and faster healing supplies.",
+      hudLabel: "Medic",
+      regenBonus: 1.8,
+      combatRegenBonus: 3.2,
+      combatRegenRadius: 220,
+      medkitHealPercent: 0.42,
+      medkitPickupLifeBonus: 6
+    },
+    assault: {
+      key: "assault",
+      name: "Assault",
+      description: "Faster reload and fire rate, bonus damage with pistols and automatic weapons, cheaper ammo upgrades.",
+      hudLabel: "Assault",
+      fireRateMult: 1.14,
+      reloadMult: 0.86,
+      damageMult: 1.12,
+      ammoUpgradeCostMult: 0.72,
+      weaponKeys: new Set(["pistol", "revolver", "smg", "assault", "minigun"])
+    },
+    engineer: {
+      key: "engineer",
+      name: "Engineer",
+      description: "Cheaper and stronger traps, deployable turrets, and discounted field gear.",
+      hudLabel: "Engineer",
+      trapDamageMult: 1.32,
+      trapRangeMult: 1.18,
+      trapCostMult: 0.62,
+      deployTurretCharges: 2,
+      deployTurretDuration: 50,
+      deployTurretHp: 90,
+      deployTurretDamage: 22,
+      deployTurretRange: 300
+    }
+  };
+
+  const ASSAULT_WEAPON_KEYS = PLAYER_CLASS_DEFS.assault.weaponKeys;
+
   class Player {
     constructor(game) {
       this.game = game;
@@ -10,6 +51,8 @@
     }
 
     reset() {
+      this.classKey = this.game.getPlayerClassKey?.() || "assault";
+      this.deployTurretCharges = this.getClassDef()?.deployTurretCharges || 0;
       this.x = this.game.width * 0.5;
       this.y = this.game.height * 0.5;
       this.vx = 0;
@@ -74,8 +117,42 @@
       return 100 + this.upgrades.health * 20 + (this.skills.vitality || 0) * 15;
     }
 
+    getClassDef() {
+      return PLAYER_CLASS_DEFS[this.classKey] || PLAYER_CLASS_DEFS.assault;
+    }
+
+    getClassKey() {
+      return this.classKey in PLAYER_CLASS_DEFS ? this.classKey : "assault";
+    }
+
+    isCombatRegenActive() {
+      const classDef = this.getClassDef();
+      if (this.getClassKey() !== "medic" || !classDef.combatRegenRadius) {
+        return false;
+      }
+      const radius = classDef.combatRegenRadius;
+      for (const zombie of this.game.zombies || []) {
+        if (zombie.alive && GameUtils.distance(this.x, this.y, zombie.x, zombie.y) <= radius) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     getRegenRate() {
-      return this.upgrades.regen * 0.45;
+      let rate = this.upgrades.regen * 0.45;
+      if (this.getClassKey() === "medic") {
+        const classDef = this.getClassDef();
+        rate += classDef.regenBonus || 0;
+        if (this.isCombatRegenActive()) {
+          rate += classDef.combatRegenBonus || 0;
+        }
+      }
+      return rate;
+    }
+
+    getWeatherSpreadMult() {
+      return this.game.getWeatherSpreadMult?.() || 1;
     }
 
     getMoveSpeed() {
@@ -492,7 +569,7 @@
       const pellets = stats.pellets || 1;
 
       for (let i = 0; i < pellets; i += 1) {
-        const spread = (Math.random() - 0.5) * stats.spread * 2;
+        const spread = (Math.random() - 0.5) * stats.spread * 2 * this.getWeatherSpreadMult();
         const angle = baseAngle + spread;
         const speed = stats.bulletSpeed;
         this.game.spawnBullet({
@@ -715,4 +792,6 @@
   }
 
   global.Player = Player;
+  global.PLAYER_CLASS_DEFS = PLAYER_CLASS_DEFS;
+  global.ASSAULT_WEAPON_KEYS = ASSAULT_WEAPON_KEYS;
 })(window);

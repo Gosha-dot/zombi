@@ -28,6 +28,9 @@
       this.state = "active";
       this.bossWave = Boolean(mode.bossEveryWave) || this.wave % 5 === 0;
       this.keyCarrierAssigned = false;
+      this.game.rollWeatherForWave(this.wave);
+      this.game.allyDamageBoost = 1;
+      this.game.allies?.onWaveStart();
       this.game.resetLevelState(true);
       this.game.pendingLocationName = null;
       this.spawned = 0;
@@ -39,11 +42,15 @@
       this.game.addGrenades(1, { notify: false, floaters: false });
 
       const locationName = this.game.getCurrentLocation()?.name || "Unknown Zone";
+      const weatherLabel = this.game.getWeatherSettings?.().label || "Clear";
       this.game.ui.showNotification(
         this.bossWave ? `Boss wave ${this.wave} incoming - ${locationName}` : `Wave ${this.wave} started - ${locationName}`,
         "accent",
         2600
       );
+      if (this.game.weatherState?.key && this.game.weatherState.key !== "clear") {
+        this.game.ui.showNotification(`Weather: ${weatherLabel}`, "normal", 2200);
+      }
       this.game.ui.setShopCountdown(0);
       this.game.ui.setWaveText(this.wave);
       this.game.audio.playSfx("ui");
@@ -311,6 +318,10 @@
       while (this.spawnTimer <= 0 && this.spawned < this.totalToSpawn) {
         this.spawnZombie();
         this.spawnTimer += spawnInterval;
+      }
+
+      if (this.spawned >= Math.max(3, Math.floor(this.totalToSpawn * 0.35)) && !this.game.allies?.waveSpawnAttempted) {
+        this.game.allies?.trySpawnCaptured();
       }
 
       if (this.spawned >= this.totalToSpawn && this.game.zombies.length === 0) {

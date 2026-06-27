@@ -21,6 +21,9 @@
         keycardText: byId("keycardText"),
         grenadeText: byId("grenadeText"),
         weaponText: byId("weaponText"),
+        classText: byId("classText"),
+        weatherText: byId("weatherText"),
+        allyText: byId("allyText"),
         modulesText: byId("modulesText"),
         coinsText: byId("coinsText"),
         waveText: byId("waveText"),
@@ -49,6 +52,8 @@
         openSettingsBtn: byId("openSettingsBtn"),
         modeButtons: byId("modeButtons"),
         modeDescription: byId("modeDescription"),
+        classButtons: byId("classButtons"),
+        classDescription: byId("classDescription"),
         closeLeaderboardBtn: byId("closeLeaderboardBtn"),
         closeSettingsBtn: byId("closeSettingsBtn"),
         leaderboardPanel: byId("leaderboardPanel"),
@@ -121,6 +126,12 @@
       this.els.modeButtons.querySelectorAll("[data-game-mode]").forEach((button) => {
         button.addEventListener("click", () => this.setGameMode(button.dataset.gameMode, true));
       });
+
+      if (this.els.classButtons) {
+        this.els.classButtons.querySelectorAll("[data-player-class]").forEach((button) => {
+          button.addEventListener("click", () => this.setPlayerClass(button.dataset.playerClass, true));
+        });
+      }
 
       this.els.scoreNameInput.addEventListener("input", () => {
         this.game.settings.playerName = this.els.scoreNameInput.value.trim() || "Survivor";
@@ -245,6 +256,7 @@
       this.questsOpen = false;
       this.inventoryOpen = false;
       this.renderModePicker();
+      this.renderClassPicker();
     }
 
     updateSettings() {
@@ -258,6 +270,7 @@
       this.game.saveSettings();
       this.game.audio.applySettings(settings);
       this.renderModePicker();
+      this.renderClassPicker();
     }
 
     setGameMode(modeKey, notify = false) {
@@ -283,6 +296,30 @@
       }
       if (this.els.tutorialModeText) {
         this.els.tutorialModeText.textContent = mode.tutorial;
+      }
+    }
+
+    setPlayerClass(classKey, notify = false) {
+      if (!this.game.setPlayerClass(classKey)) {
+        return false;
+      }
+      this.renderClassPicker();
+      if (notify) {
+        this.game.audio.playSfx("ui");
+      }
+      return true;
+    }
+
+    renderClassPicker() {
+      const classes = global.PLAYER_CLASS_DEFS || {};
+      const classKey = this.game.getPlayerClassKey();
+      if (this.els.classButtons) {
+        this.els.classButtons.querySelectorAll("[data-player-class]").forEach((button) => {
+          button.classList.toggle("mode-chip--active", button.dataset.playerClass === classKey);
+        });
+      }
+      if (this.els.classDescription) {
+        this.els.classDescription.textContent = (classes[classKey] || classes.assault)?.description || "";
       }
     }
 
@@ -322,12 +359,14 @@
 
       if (mode === "tutorial") {
         this.renderModePicker();
+        this.renderClassPicker();
         this.els.tutorialPanel.classList.remove("panel--hidden");
         this.els.tutorialPanel.setAttribute("aria-hidden", "false");
       }
 
       if (mode === "menu") {
         this.els.mainMenu.classList.remove("panel--hidden");
+        this.renderClassPicker();
       }
 
       if (mode !== "playing" && mode !== "intermission") {
@@ -453,10 +492,36 @@
 
     renderShop() {
       const categories = this.game.shop.getCategories();
+      const allyItems = this.game.allies?.getShopItems() || [];
       if (this.els.traderText) {
         this.els.traderText.hidden = !this.game.isTraderWave?.();
       }
-      this.els.shopGrid.innerHTML = categories
+      const allyCategory = allyItems.length
+        ? `
+            <section class="shop-category shop-category--ally">
+              <h3 class="shop-category__title">Ally Supply Drop</h3>
+              <div class="shop-category__items">${allyItems.map((item) => `
+                <article class="shop-card shop-card--supply">
+                  <div class="shop-card__head">
+                    <div>
+                      <h3 class="shop-card__name">${item.name}</h3>
+                      <div class="shop-card__meta">Rescued survivor stock</div>
+                    </div>
+                    <div class="shop-card__meta">${item.previewText}</div>
+                  </div>
+                  <p class="shop-card__desc">${item.description}</p>
+                  <div class="shop-card__footer">
+                    <span class="shop-card__cost">${item.cost} coins</span>
+                    <button class="btn ${item.affordable ? "btn--primary" : ""}" data-ally-item-id="${item.id}" ${item.affordable ? "" : "disabled"}>
+                      Buy Once
+                    </button>
+                  </div>
+                </article>
+              `).join("")}</div>
+            </section>
+          `
+        : "";
+      this.els.shopGrid.innerHTML = allyCategory + categories
         .map((category) => {
           const items = category.items
             .map((item) => {
@@ -544,6 +609,18 @@
           }
         });
       });
+
+      this.els.shopGrid.querySelectorAll("[data-ally-item-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const result = this.game.allies.buyShopItem(button.dataset.allyItemId);
+          if (result.ok) {
+            this.renderShop();
+            this.updateHUD();
+          } else {
+            this.showNotification(result.reason || "Cannot buy item", "danger", 1800);
+          }
+        });
+      });
     }
 
     renderLeaderboard(highlightId = null) {
@@ -587,6 +664,20 @@
         this.els.grenadeText.textContent = player.getGrenadeText();
       }
       this.els.weaponText.textContent = player.getCurrentWeaponName();
+      if (this.els.classText) {
+        this.els.classText.textContent = this.game.getPlayerClassSettings().name;
+      }
+      if (this.els.weatherText) {
+        this.els.weatherText.textContent = this.game.getWeatherSettings().label;
+      }
+      if (this.els.allyText) {
+        const allyStatus = this.game.allies?.getStatusText() || "None";
+        this.els.allyText.textContent = allyStatus;
+        const allyCard = this.els.allyText.closest(".hud__card--ally");
+        if (allyCard) {
+          allyCard.classList.toggle("hud__card--dead", allyStatus === "Ally lost");
+        }
+      }
       if (this.els.modulesText) {
         this.els.modulesText.textContent = player.getWeaponModuleText();
       }
@@ -768,6 +859,9 @@
       this.drawMapTraps(ctx, toMini, 0.62);
 
       for (const pickup of this.game.pickups) {
+        if (!this.game.canDetectOnMap(pickup.x, pickup.y)) {
+          continue;
+        }
         const point = toMini(pickup.x, pickup.y);
         ctx.fillStyle = BONUS_DEFS[pickup.type]?.color || "#ffd34d";
         ctx.beginPath();
@@ -779,11 +873,32 @@
         if (!zombie.alive) {
           continue;
         }
+        if (!this.game.canDetectOnMap(zombie.x, zombie.y)) {
+          continue;
+        }
         const point = toMini(zombie.x, zombie.y);
         const isBoss = zombie.isBoss?.();
         ctx.fillStyle = isBoss ? zombie.base.color : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
         ctx.beginPath();
         ctx.arc(point.x, point.y, isBoss ? 4.3 : 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (this.game.allies?.captured?.alive) {
+        const ally = this.game.allies.captured;
+        const point = toMini(ally.x, ally.y);
+        ctx.fillStyle = "#ffe38a";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (this.game.allies?.companion?.alive) {
+        const ally = this.game.allies.companion;
+        const point = toMini(ally.x, ally.y);
+        ctx.fillStyle = "#8dc3ff";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 3.2, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -807,7 +922,7 @@
       ctx.arc(playerPoint.x + 1, playerPoint.y, 1.6, 0, Math.PI * 2);
       ctx.fill();
 
-      this.els.minimapInfo.textContent = `W${this.game.waveManager.wave || 1} - ${this.game.zombies.length} zombies`;
+      this.els.minimapInfo.textContent = `W${this.game.waveManager.wave || 1} - ${this.game.zombies.filter((zombie) => zombie.alive && this.game.canDetectOnMap(zombie.x, zombie.y)).length} zombies`;
     }
 
     renderWorldMap() {
@@ -885,6 +1000,9 @@
         if (!zombie.alive) {
           continue;
         }
+        if (!this.game.canDetectOnMap(zombie.x, zombie.y)) {
+          continue;
+        }
         const point = toMap(zombie.x, zombie.y);
         const isBoss = zombie.isBoss?.();
         ctx.fillStyle = isBoss ? zombie.base.color : zombie.type === "shooter" ? "#c77dff" : zombie.type === "tank" ? "#d4b07d" : zombie.type === "exploder" ? "#ff8f62" : zombie.type === "runner" ? "#b8ffd8" : "#8bd48a";
@@ -914,7 +1032,7 @@
       ctx.fill();
 
       const wave = this.game.waveManager.wave || 1;
-      const aliveZombies = this.game.zombies.filter((zombie) => zombie.alive).length;
+      const aliveZombies = this.game.zombies.filter((zombie) => zombie.alive && this.game.canDetectOnMap(zombie.x, zombie.y)).length;
       const drops = this.game.pickups.length;
       const loot = (this.game.worldLayout?.lootContainers || []).filter((container) => !container.opened).length;
       const bossWave = this.game.waveManager.bossWave ? " - Boss wave" : "";

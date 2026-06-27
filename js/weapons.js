@@ -319,9 +319,19 @@
     const moduleEffects = getWeaponModuleEffects(player, key);
 
     const skills = player?.skills || {};
-    const damageMult = (1 + (upgrades.weaponDamage || 0) * 0.12 + (skills.weaponsmith || 0) * 0.08) * (doubleDamage ? 2 : 1) * (1 + moduleEffects.damageMult);
-    const fireRateMult = (1 + (upgrades.fireRate || 0) * 0.08) * (rapidFire ? 1.45 : 1) * (1 + moduleEffects.fireRateMult);
-    const reloadMult = Math.max(0.35, Math.max(0.45, 1 - (upgrades.reload || 0) * 0.08) * (1 + moduleEffects.reloadTimeMult));
+    const classKey = player?.getClassKey?.() || player?.classKey;
+    const classDef = global.PLAYER_CLASS_DEFS?.[classKey];
+    const assaultWeaponBonus = classKey === "assault" && global.ASSAULT_WEAPON_KEYS?.has(key)
+      ? (classDef?.damageMult || 1)
+      : 1;
+    const classFireRateMult = classKey === "assault" ? (classDef?.fireRateMult || 1) : 1;
+    const classReloadMult = classKey === "assault" ? (classDef?.reloadMult || 1) : 1;
+
+    const allyBoost = player?.game?.allyDamageBoost || 1;
+
+    const damageMult = (1 + (upgrades.weaponDamage || 0) * 0.12 + (skills.weaponsmith || 0) * 0.08) * (doubleDamage ? 2 : 1) * (1 + moduleEffects.damageMult) * assaultWeaponBonus * allyBoost;
+    const fireRateMult = (1 + (upgrades.fireRate || 0) * 0.08) * (rapidFire ? 1.45 : 1) * (1 + moduleEffects.fireRateMult) * classFireRateMult;
+    const reloadMult = Math.max(0.35, Math.max(0.45, 1 - (upgrades.reload || 0) * 0.08) * (1 + moduleEffects.reloadTimeMult) * classReloadMult);
     const spreadMult = Math.max(0.25, 1 + moduleEffects.spreadMult);
     const recoilMult = Math.max(0.35, 1 + moduleEffects.recoilMult);
 

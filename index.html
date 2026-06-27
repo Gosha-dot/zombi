@@ -34,6 +34,18 @@
           <span class="hud__label">Weapon</span>
           <strong id="weaponText" class="hud__value">Pistol</strong>
         </div>
+        <div class="hud__card hud__card--class">
+          <span class="hud__label">Class</span>
+          <strong id="classText" class="hud__value">Assault</strong>
+        </div>
+        <div class="hud__card hud__card--weather">
+          <span class="hud__label">Weather</span>
+          <strong id="weatherText" class="hud__value">Clear</strong>
+        </div>
+        <div class="hud__card hud__card--ally">
+          <span class="hud__label">Ally</span>
+          <strong id="allyText" class="hud__value">None</strong>
+        </div>
         <div class="hud__card hud__card--modules">
           <span class="hud__label">Modules</span>
           <strong id="modulesText" class="hud__value">None</strong>
@@ -92,6 +104,15 @@
               <button class="mode-chip" type="button" data-game-mode="endlessNight">Endless Night</button>
             </div>
             <p id="modeDescription" class="mode-picker__description">Balanced outbreak conditions.</p>
+          </div>
+          <div class="class-picker" aria-label="Survivor class">
+            <span class="hud__label">Class</span>
+            <div id="classButtons" class="mode-picker__buttons">
+              <button class="mode-chip" type="button" data-player-class="medic">Medic</button>
+              <button class="mode-chip" type="button" data-player-class="assault">Assault</button>
+              <button class="mode-chip" type="button" data-player-class="engineer">Engineer</button>
+            </div>
+            <p id="classDescription" class="mode-picker__description">Faster reload and fire rate with bonus pistol and automatic weapon damage.</p>
           </div>
           <div class="menu-stats">
             <div class="menu-stats__item">
@@ -322,6 +343,7 @@
   <script src="js/zombie.js"></script>
   <script src="js/waves.js"></script>
   <script src="js/missions.js"></script>
+  <script src="js/allies.js"></script>
   <script src="js/shop.js"></script>
   <script src="js/bonuses.js"></script>
   <script src="js/leaderboard.js"></script>

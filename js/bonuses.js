@@ -162,7 +162,9 @@
       this.x = x;
       this.y = y;
       this.radius = 14;
-      this.life = this.type === "keycard" ? 15 * 60 : 18;
+      this.life = this.type === "keycard" ? 15 * 60 : this.type === "healthPack" && this.game.player?.getClassKey?.() === "medic"
+        ? 24
+        : 18;
       this.pulse = Math.random() * Math.PI * 2;
       this.vx = (Math.random() - 0.5) * 18;
       this.vy = -18 - Math.random() * 18;
@@ -311,10 +313,16 @@
       }
 
       switch (type) {
-        case "healthPack":
-          this.game.player.heal(40 + this.game.waveManager.wave * 2);
+        case "healthPack": {
+          const classDef = global.PLAYER_CLASS_DEFS?.[this.game.player.getClassKey?.()];
+          const maxHp = this.game.player.getMaxHp();
+          const healAmount = this.game.player.getClassKey?.() === "medic" && classDef?.medkitHealPercent
+            ? maxHp * classDef.medkitHealPercent
+            : 40 + this.game.waveManager.wave * 2;
+          this.game.player.heal(healAmount);
           this.game.ui.showNotification("Health Pack collected", "accent", 2200);
           break;
+        }
         case "fullHeal":
           this.game.player.heal(Infinity, true);
           this.game.ui.showNotification("Full Heal collected", "accent", 2200);
